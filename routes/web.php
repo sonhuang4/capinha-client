@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\CardController;
+use App\Http\Controllers\SettingController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -28,7 +29,17 @@ Route::middleware(['auth', 'verified'])->get('/analytics', function () {
 
 Route::middleware(['auth', 'verified'])->get('/analytics/data', [CardController::class, 'analytics']);
 
+Route::middleware(['auth', 'verified'])->get('/settings', function () {
+    return Inertia::render('AdminSettings');
+});
+
+// Route::middleware(['auth'])->group(function () {
+//     Route::get('/settings', [SettingController::class, 'get'])->name('settings');
+//     Route::post('/settings/save', [SettingController::class, 'save']);
+//     Route::post('/settings/reset', [SettingController::class, 'reset']);
+// });
+
 Route::get('/c/{code}', [CardController::class, 'showByCode']); // public
 
-require __DIR__.'/settings.php';
+// require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

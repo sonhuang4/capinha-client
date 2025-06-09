@@ -88,18 +88,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
           </div>
 
           <div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-sm">Password</Label>
-              {canResetPassword && (
-                <TextLink
-                  href={route('password.request')}
-                  className="text-xs underline"
-                  tabIndex={5}
-                >
-                  Forgot?
-                </TextLink>
-              )}
-            </div>
             <Input
               id="password"
               type="password"
@@ -133,13 +121,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             Log in
           </Button>
         </form>
-
-        <p className="mt-4 text-xs text-center text-muted-foreground">
-          Don't have an account?{' '}
-          {/* <TextLink href={route('register')} className="underline text-xs">
-            Sign up
-          </TextLink> */}
-        </p>
       </Card>
     </div>
   );

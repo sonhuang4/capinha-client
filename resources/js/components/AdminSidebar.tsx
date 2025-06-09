@@ -43,12 +43,12 @@ export function AdminSidebar() {
       <SidebarTrigger className="m-2 self-end" />
 
       <SidebarContent>
-        <div className="relative flex items-center justify-center py-6 px-4 bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] border-b border-zinc-700 shadow-inner">
+        <div className="relative rounded-2xl flex items-center justify-center py-6 px-4 bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] border-b border-zinc-700 shadow-inner">
           <div className="relative w-full">
             <img
               src="/images/capinha-logo.png"
               alt="Capinha Digital"
-              className={`mx-auto transition-all duration-500 ${collapsed ? 'h-10' : 'h-20'
+              className={`mx-auto transition-all duration-500 relative rounded-[5px] ${collapsed ? 'h-10' : 'h-20'
                 } object-contain drop-shadow-md`}
             />
             {!collapsed && (
