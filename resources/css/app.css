@@ -157,3 +157,33 @@
         @apply bg-background text-foreground;
     }
 }
+/* ✨ Gradient button with hover effect */
+.gradient-button {
+  @apply bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-2 px-4 rounded hover:opacity-90 transition;
+}
+
+/*  Card style used for login/register box */
+.material-card {
+  @apply bg-card text-card-foreground shadow-xl rounded-xl border border-border;
+}
+
+@keyframes bubble-float {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-100vh) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-bubble-float {
+  animation-name: bubble-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}

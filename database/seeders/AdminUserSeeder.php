@@ -1,10 +1,11 @@
 <?php
 
 namespace Database\Seeders;
-use App\Models\User; 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;  
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\App;
 
 class AdminUserSeeder extends Seeder
 {
@@ -13,16 +14,24 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@capinhadigital.com',
-            'password' => Hash::make('admin123'),
-            'role' => 'admin',
-            'is_active' => true,
-        ]);
+        $adminEmail = env('ADMIN_EMAIL', 'admin@capinhadigital.com');
+        $adminPassword = env('ADMIN_PASSWORD', 'admin123');
 
-        echo "Admin user created!\n";
-        echo "Email: admin@capinhadigital.com\n";
-        echo "Password: admin123\n";
+        $admin = User::updateOrCreate(
+            ['email' => $adminEmail],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make($adminPassword),
+                'role' => 'admin',
+                'is_active' => true,
+            ]
+        );
+
+        // Only echo in non-production environments
+        if (!App::environment('production')) {
+            echo " Admin user created or updated successfully!\n";
+            echo " Email: {$adminEmail}\n";
+            echo " Password: {$adminPassword}\n";
+        }
     }
 }

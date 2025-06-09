@@ -1,132 +1,90 @@
 <?php
 // app/Http/Controllers/Api/CardController.php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Card;
 use Illuminate\Http\Request;
 
 class CardController extends Controller
 {
-    // GET /api/cards - List all cards (admin only)
     public function index()
     {
-        $cards = Card::with('user')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-
-        return response()->json($cards);
+        return Card::orderBy('created_at', 'desc')->get();
     }
 
-    // POST /api/cards - Create new card (admin only)
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'name' => 'nullable|string|max:255',
-            'company_name' => 'nullable|string|max:255',
-            'job_title' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'whatsapp' => 'nullable|url',
-            'instagram' => 'nullable|url',
-            'linkedin' => 'nullable|url',
+            'name' => 'required|string|max:255',
+            'profile_picture' => 'nullable|url',
+            'logo' => 'nullable|url',
+            'whatsapp' => 'nullable|string',
+            'instagram' => 'nullable|string',
             'website' => 'nullable|url',
-            'facebook' => 'nullable|url',
-            'bio' => 'nullable|string|max:500',
-            'address' => 'nullable|string|max:255',
+            'color_theme' => 'nullable|string',
+            'status' => 'in:pending,activated',
         ]);
 
-        // Auto-generate code if not provided
-        $validated['code'] = Card::generateUniqueCode();
-        $validated['status'] = 'pending';
-
+        $validated['code'] = substr(md5(uniqid()), 0, 6);
         $card = Card::create($validated);
 
-        return response()->json([
-            'message' => 'Card created successfully',
-            'card' => $card,
-            'public_url' => $card->getPublicUrl()
-        ], 201);
+        return response()->json($card, 201);
     }
 
-    // GET /api/cards/{id} - Get card details (admin only)
-    public function show(Card $card)
+    public function update(Request $request, $id)
     {
-        return response()->json([
-            'card' => $card->load('user')
-        ]);
-    }
+        $card = Card::findOrFail($id);
 
-    // PUT /api/cards/{id} - Update card (admin only)
-    public function update(Request $request, Card $card)
-    {
         $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'company_name' => 'nullable|string|max:255',
-            'job_title' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'whatsapp' => 'nullable|url',
-            'instagram' => 'nullable|url',
-            'linkedin' => 'nullable|url',
+            'name' => 'sometimes|required|string|max:255',
+            'profile_picture' => 'nullable|url',
+            'logo' => 'nullable|url',
+            'whatsapp' => 'nullable|string',
+            'instagram' => 'nullable|string',
             'website' => 'nullable|url',
-            'facebook' => 'nullable|url',
-            'bio' => 'nullable|string|max:500',
-            'address' => 'nullable|string|max:255',
-            'status' => 'in:pending,active,blocked',
+            'color_theme' => 'nullable|string',
+            'status' => 'in:pending,activated',
         ]);
 
         $card->update($validated);
-
-        return response()->json([
-            'message' => 'Card updated successfully',
-            'card' => $card
-        ]);
+        return response()->json($card);
     }
 
-    // DELETE /api/cards/{id} - Delete card (admin only)
-    public function destroy(Card $card)
-    {
-        $card->delete();
-
-        return response()->json([
-            'message' => 'Card deleted successfully'
-        ]);
-    }
-
-    // GET /api/c/{code} - Public card display (no auth needed)
     public function showByCode($code)
     {
-        $card = Card::where('code', $code)
-            ->where('status', 'active')
-            ->first();
-
-        if (!$card) {
-            return response()->json([
-                'error' => 'Card not found or not active'
-            ], 404);
-        }
-
-        // Log the visit (we'll create this later)
-        // $this->logCardVisit($card, request());
-
-        return response()->json([
-            'name' => $card->name,
-            'company_name' => $card->company_name,
-            'job_title' => $card->job_title,
-            'phone' => $card->phone,
-            'email' => $card->email,
-            'whatsapp' => $card->whatsapp,
-            'instagram' => $card->instagram,
-            'linkedin' => $card->linkedin,
-            'website' => $card->website,
-            'facebook' => $card->facebook,
-            'photo_url' => $card->photo_url,
-            'logo_url' => $card->logo_url,
-            'bio' => $card->bio,
-            'address' => $card->address,
-        ]);
+        $card = Card::where('code', $code)->firstOrFail();
+        $card->increment('click_count');
+        return response()->json($card);
     }
+
+    public function analytics()
+{
+    $cards = \App\Models\Card::all();
+
+    $totalCards = $cards->count();
+    $activeCards = $cards->where('status', 'activated')->count();
+    $totalClicks = $cards->sum('click_count');
+    $avgClicks = $totalCards > 0 ? round($totalClicks / $totalCards) : 0;
+
+    $clicksByName = $cards->map(fn($card) => [
+        'name' => $card->name,
+        'clicks' => $card->click_count
+    ])->toArray();
+
+    $statusCounts = [
+        'activated' => $activeCards,
+        'pending' => $totalCards - $activeCards
+    ];
+
+    return response()->json([
+        'total_cards' => $totalCards,
+        'active_cards' => $activeCards,
+        'total_clicks' => $totalClicks,
+        'avg_clicks' => $avgClicks,
+        'clicks_by_name' => $clicksByName,
+        'status_counts' => $statusCounts,
+    ]);
+}
+
 }
