@@ -16,11 +16,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
+    // Existing card routes
     Route::get('/cards', [CardController::class, 'index']);
     Route::post('/cards', [CardController::class, 'store']);
     Route::put('/cards/{id}', [CardController::class, 'update']);
-    // Route::get('/analytics', [CardController::class, 'analytics']);
-    // Route::get('/analytics', fn() => Inertia::render('AdminAnalytics'))->middleware('auth');
+    Route::put('/cards/{id}/toggle-status', [CardController::class, 'toggleStatus']);
+    
+    // NEW: Short link and sharing routes
+    Route::get('/cards/{id}/short-link', [CardController::class, 'getShortLink']);
+    Route::get('/cards/{id}/whatsapp-share', [CardController::class, 'getWhatsAppLink']);
+    Route::get('/cards/{id}/email-share', [CardController::class, 'getEmailShare']);
+    Route::get('/cards/{id}/sharing-options', [CardController::class, 'getSharingOptions']);
 });
 
 Route::middleware(['auth', 'verified'])->get('/analytics', function () {
@@ -33,13 +39,7 @@ Route::middleware(['auth', 'verified'])->get('/settings', function () {
     return Inertia::render('AdminSettings');
 });
 
-// Route::middleware(['auth'])->group(function () {
-//     Route::get('/settings', [SettingController::class, 'get'])->name('settings');
-//     Route::post('/settings/save', [SettingController::class, 'save']);
-//     Route::post('/settings/reset', [SettingController::class, 'reset']);
-// });
-
+// Public route for viewing cards by code
 Route::get('/c/{code}', [CardController::class, 'showByCode']); // public
 
-// require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

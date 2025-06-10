@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Search, Edit, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Eye, Copy, MessageCircle, Mail, Share2, Check } from 'lucide-react';
 import BusinessCardDisplay from '@/components/BusinessCardDisplay';
 import CardForm from '@/components/CardForm';
 import AdminLayout from '@/layouts/admin-layouts';
@@ -17,6 +17,35 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+// Remove this import - we'll use simple alerts instead
+
+interface SharingOptions {
+    short_link: string;
+    whatsapp: {
+        url: string;
+        message: string;
+    };
+    email: {
+        url: string;
+        subject: string;
+        body: string;
+    };
+    sms: {
+        url: string;
+        message: string;
+    };
+    social: {
+        twitter: string;
+        linkedin: string;
+        facebook: string;
+    };
+}
 
 const AdminDashboard = () => {
 
@@ -35,18 +64,25 @@ const AdminDashboard = () => {
     const [selectedCard, setSelectedCard] = useState<BusinessCard | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [copiedLinks, setCopiedLinks] = useState<Set<string>>(new Set());
 
     const filteredCards = cards.filter(card =>
         card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         card.id.includes(searchTerm)
     );
 
-    const toggleCardStatus = (cardId: string) => {
-        setCards(prev => prev.map(card =>
-            card.id === cardId
-                ? { ...card, status: card.status === 'activated' ? 'pending' : 'activated' }
-                : card
-        ));
+    const toggleCardStatus = async (cardId: string) => {
+        try {
+            const response = await axios.put(`/cards/${cardId}/toggle-status`);
+            const updatedCard = response.data;
+            setCards(prev =>
+                prev.map(card =>
+                    card.id === cardId ? { ...card, status: updatedCard.status } : card
+                )
+            );
+        } catch (error) {
+            console.error('Failed to toggle card status:', error);
+        }
     };
 
     const handleEditCard = (card: BusinessCard) => {
@@ -78,6 +114,94 @@ const AdminDashboard = () => {
     const handlePreview = (card: BusinessCard) => {
         setSelectedCard(card);
         setIsPreviewOpen(true);
+    };
+
+    // NEW: Copy short link to clipboard
+    const copyShortLink = async (card: BusinessCard) => {
+        try {
+            const response = await axios.get(`/cards/${card.id}/short-link`);
+            const { short_link } = response.data;
+            
+            await navigator.clipboard.writeText(short_link);
+            
+            // Show visual feedback
+            setCopiedLinks(prev => new Set([...prev, card.id]));
+            setTimeout(() => {
+                setCopiedLinks(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(card.id);
+                    return newSet;
+                });
+            }, 2000);
+            
+            alert("Link Copied! Short link copied to clipboard");
+        } catch (error) {
+            console.error('Failed to copy short link:', error);
+            alert("Error: Failed to copy link");
+        }
+    };
+
+    // NEW: Share on WhatsApp
+    const shareOnWhatsApp = async (card: BusinessCard) => {
+        try {
+            const response = await axios.get(`/cards/${card.id}/whatsapp-share`);
+            const { whatsapp_url } = response.data;
+            
+            window.open(whatsapp_url, '_blank');
+        } catch (error) {
+            console.error('Failed to get WhatsApp link:', error);
+            alert("Error: Failed to generate WhatsApp link");
+        }
+    };
+
+    // NEW: Share via Email
+    const shareViaEmail = async (card: BusinessCard) => {
+        try {
+            const response = await axios.get(`/cards/${card.id}/email-share`);
+            const { mailto_url } = response.data;
+            
+            window.location.href = mailto_url;
+        } catch (error) {
+            console.error('Failed to get email link:', error);
+            alert("Error: Failed to generate email link");
+        }
+    };
+
+    // NEW: Get all sharing options
+    const getSharingOptions = async (card: BusinessCard): Promise<SharingOptions | null> => {
+        try {
+            const response = await axios.get(`/cards/${card.id}/sharing-options`);
+            return response.data;
+        } catch (error) {
+            console.error('Failed to get sharing options:', error);
+            return null;
+        }
+    };
+
+    // NEW: Handle social media sharing
+    const handleSocialShare = async (card: BusinessCard, platform: string) => {
+        const options = await getSharingOptions(card);
+        if (!options) return;
+
+        let url = '';
+        switch (platform) {
+            case 'twitter':
+                url = options.social.twitter;
+                break;
+            case 'linkedin':
+                url = options.social.linkedin;
+                break;
+            case 'facebook':
+                url = options.social.facebook;
+                break;
+            case 'sms':
+                url = options.sms.url;
+                break;
+        }
+
+        if (url) {
+            window.open(url, '_blank');
+        }
     };
 
     return (
@@ -177,6 +301,64 @@ const AdminDashboard = () => {
                                                 >
                                                     <Eye className="w-3 h-3" />
                                                 </Button>
+                                                
+                                                {/* NEW: Copy Link Button */}
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => copyShortLink(card)}
+                                                    className={copiedLinks.has(card.id) ? "bg-green-100 border-green-300" : ""}
+                                                >
+                                                    {copiedLinks.has(card.id) ? (
+                                                        <Check className="w-3 h-3 text-green-600" />
+                                                    ) : (
+                                                        <Copy className="w-3 h-3" />
+                                                    )}
+                                                </Button>
+
+                                                {/* NEW: WhatsApp Share Button */}
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => shareOnWhatsApp(card)}
+                                                    className="text-green-600 hover:bg-green-50"
+                                                >
+                                                    <MessageCircle className="w-3 h-3" />
+                                                </Button>
+
+                                                {/* NEW: Email Share Button */}
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => shareViaEmail(card)}
+                                                    className="text-blue-600 hover:bg-blue-50"
+                                                >
+                                                    <Mail className="w-3 h-3" />
+                                                </Button>
+
+                                                {/* NEW: More Sharing Options Dropdown */}
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button size="sm" variant="outline">
+                                                            <Share2 className="w-3 h-3" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuItem onClick={() => handleSocialShare(card, 'twitter')}>
+                                                            Share on Twitter
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleSocialShare(card, 'linkedin')}>
+                                                            Share on LinkedIn
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleSocialShare(card, 'facebook')}>
+                                                            Share on Facebook
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleSocialShare(card, 'sms')}>
+                                                            Share via SMS
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+
                                                 <Switch
                                                     checked={card.status === 'activated'}
                                                     onCheckedChange={() => toggleCardStatus(card.id)}
