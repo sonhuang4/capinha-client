@@ -16,6 +16,7 @@ interface CardFormProps {
 const CardForm: React.FC<CardFormProps> = ({ card, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     profilePicture: '',
     logo: '',
     whatsapp: '',
@@ -29,6 +30,7 @@ const CardForm: React.FC<CardFormProps> = ({ card, onSave, onCancel }) => {
     if (card) {
       setFormData({
         name: card.name,
+        email: card.email,
         profilePicture: card.profilePicture || '',
         logo: card.logo || '',
         whatsapp: card.whatsapp || '',
@@ -63,6 +65,16 @@ const CardForm: React.FC<CardFormProps> = ({ card, onSave, onCancel }) => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="John Smith"
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="shohei.chen.dev@gmail.com"
               required
             />
           </div>

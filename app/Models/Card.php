@@ -11,6 +11,7 @@ class Card extends Model
 
     protected $fillable = [
         'name',
+        'email',
         'profile_picture',
         'logo',
         'whatsapp',

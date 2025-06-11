@@ -141,25 +141,46 @@ const AdminDashboard = () => {
         }
     };
 
-    // NEW: Share on WhatsApp
+    // NEW: Share on WhatsApp with fallback
     const shareOnWhatsApp = async (card: BusinessCard) => {
         try {
-            const response = await axios.get(`/cards/${card.id}/whatsapp-share`);
-            const { whatsapp_url } = response.data;
+            // Make sure you're calling the RIGHT endpoint
+            console.log('Calling:', `/cards/${card.id}/whatsapp-share`);
             
-            window.open(whatsapp_url, '_blank');
+            const response = await axios.get(`/cards/${card.id}/whatsapp-share`);
+            const { whatsapp_url, fallback_message } = response.data;
+            
+            console.log('Got WhatsApp URL:', whatsapp_url); // DEBUG: Check what URL you're getting
+            
+            // Try to open WhatsApp
+            const newWindow = window.open(whatsapp_url, '_blank');
+            
+            // If window didn't open (blocked), use fallback
+            setTimeout(() => {
+                if (!newWindow || newWindow.closed) {
+                    // Copy message to clipboard as fallback
+                    navigator.clipboard.writeText(fallback_message).then(() => {
+                        alert("WhatsApp link blocked. Message copied to clipboard! Paste it in WhatsApp manually.");
+                    }).catch(() => {
+                        alert(`WhatsApp link blocked. Copy this message manually:\n\n${fallback_message}`);
+                    });
+                }
+            }, 1000);
+            
         } catch (error) {
             console.error('Failed to get WhatsApp link:', error);
             alert("Error: Failed to generate WhatsApp link");
         }
     };
 
-    // NEW: Share via Email
+    // NEW: Share via Email - FIXED
     const shareViaEmail = async (card: BusinessCard) => {
         try {
             const response = await axios.get(`/cards/${card.id}/email-share`);
+            console.log('Email response:', response.data);
             const { mailto_url } = response.data;
-            
+             console.log('Mailto URL:', mailto_url); // ADD THIS
+            // Use window.location.href instead of window.open for mailto
             window.location.href = mailto_url;
         } catch (error) {
             console.error('Failed to get email link:', error);

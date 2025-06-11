@@ -17,6 +17,7 @@ class CardController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',  // ADDED: Email validation
             'profile_picture' => 'nullable|url',
             'logo' => 'nullable|url',
             'whatsapp' => 'nullable|string',
@@ -38,6 +39,7 @@ class CardController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
+            'email' => 'nullable|email|max:255',  // ADDED: Email validation
             'profile_picture' => 'nullable|url',
             'logo' => 'nullable|url',
             'whatsapp' => 'nullable|string',
@@ -67,14 +69,14 @@ class CardController extends Controller
         return response()->json($card);
     }
 
-    // NEW: Get short link for a card
+    // FIXED: Get short link for a card (corrected path)
     public function getShortLink($id)
     {
         $card = Card::findOrFail($id);
         
-        // Generate short link URL
+        // Generate short link URL - FIXED PATH
         $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/card/' . $card->code;
+        $shortLink = $baseUrl . '/c/' . $card->code;  // FIXED: /c/ instead of /card/
         
         return response()->json([
             'short_link' => $shortLink,
@@ -83,17 +85,17 @@ class CardController extends Controller
         ]);
     }
 
-    // NEW: Get WhatsApp share link
+    // FIXED: Get WhatsApp share link (corrected path and URL)
     public function getWhatsAppLink($id)
     {
         $card = Card::findOrFail($id);
         
         $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/card/' . $card->code;
+        $shortLink = $baseUrl . '/c/' . $card->code;  // FIXED: /c/ instead of /card/
         
         // WhatsApp message template
         $message = "👋 Hi! Check out my digital business card: " . $shortLink;
-        $whatsappUrl = "https://api.whatsapp.com/send/?text=" . urlencode($message);
+        $whatsappUrl = "https://api.whatsapp.com/send?text=" . urlencode($message);  // FIXED: Removed extra slash
         
         return response()->json([
             'whatsapp_url' => $whatsappUrl,
@@ -102,38 +104,91 @@ class CardController extends Controller
         ]);
     }
 
-    // NEW: Get email share content
+    // FIXED: Get email share content (corrected path and complete implementation)
     public function getEmailShare($id)
     {
         $card = Card::findOrFail($id);
         
+        // Get base URL from config - FIXED PATH
         $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/card/' . $card->code;
+        $shortLink = $baseUrl . '/c/' . $card->code;  // FIXED: /c/ instead of /card/
         
+        // Use card owner's information
+        $senderName = $card->name;
+        $senderEmail = $card->email;
+        
+        // Create professional subject line
         $subject = "Digital Business Card - " . $card->name;
-        $body = "Hello,\n\nI'd like to share my digital business card with you.\n\nView my card: " . $shortLink . "\n\nBest regards,\n" . $card->name;
         
+        // Create personalized email body
+        $body = "Hi there!\n\n";
+        $body .= "I hope this message finds you well.\n\n";
+        $body .= "I'd like to share my digital business card with you for easy access to my contact information.\n\n";
+        $body .= "📱 View my digital card: " . $shortLink . "\n\n";
+        $body .= "You can save my contact details directly from the card.\n\n";
+        
+        // Add contact information if available
+        if ($card->email) {
+            $body .= "📧 Email: " . $card->email . "\n";
+        }
+        if ($card->whatsapp) {
+            $body .= "📞 WhatsApp: " . $card->whatsapp . "\n";
+        }
+        if ($card->website) {
+            $body .= "🌐 Website: " . $card->website . "\n";
+        }
+        if ($card->instagram) {
+            $body .= "📱 Instagram: @" . $card->instagram . "\n";
+        }
+        
+        $body .= "\nBest regards,\n" . $card->name;
+        
+        // Add professional signature if email exists
+        if ($card->email) {
+            $body .= "\n\n---\n";
+            $body .= $card->name . "\n";
+            $body .= $card->email;
+            if ($card->website) {
+                $body .= "\n" . $card->website;
+            }
+        }
+        
+        // Create mailto URL with proper encoding
         $mailtoUrl = "mailto:?subject=" . urlencode($subject) . "&body=" . urlencode($body);
+        
+        // Add CC to sender's email if available
+        if ($senderEmail) {
+            $mailtoUrl .= "&cc=" . urlencode($senderEmail);
+        }
         
         return response()->json([
             'mailto_url' => $mailtoUrl,
             'subject' => $subject,
             'body' => $body,
-            'short_link' => $shortLink
+            'short_link' => $shortLink,
+            'sender_email' => $senderEmail,
+            'sender_name' => $senderName,
+            'has_sender_email' => !empty($senderEmail),
+            'contact_info' => [
+                'email' => $card->email,
+                'whatsapp' => $card->whatsapp,
+                'website' => $card->website,
+                'instagram' => $card->instagram
+            ]
         ]);
     }
 
-    // NEW: Bulk get sharing options
+    // FIXED: Bulk get sharing options (corrected path)
     public function getSharingOptions($id)
     {
         $card = Card::findOrFail($id);
         
         $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/card/' . $card->code;
+        $shortLink = $baseUrl . '/c/' . $card->code;  // FIXED: /c/ instead of /card/
         
         // WhatsApp
         $whatsappMessage = "👋 Hi! Check out my digital business card: " . $shortLink;
-        $whatsappUrl = "https://api.whatsapp.com/send/?text=" . urlencode($whatsappMessage);
+        $whatsappUrl = "https://api.whatsapp.com/send?text=" . urlencode($whatsappMessage);  // FIXED: Removed extra slash
         
         // Email
         $emailSubject = "Digital Business Card - " . $card->name;
