@@ -105,76 +105,97 @@ class CardController extends Controller
     }
 
     // FIXED: Get email share content (corrected path and complete implementation)
+    // public function getEmailShare($id)
+    // {
+    //     $card = Card::findOrFail($id);
+        
+    //     // Get base URL from config - FIXED PATH
+    //     $baseUrl = config('app.frontend_url', 'http://localhost:8000');
+    //     $shortLink = $baseUrl . '/c/' . $card->code;  // FIXED: /c/ instead of /card/
+        
+    //     // Use card owner's information
+    //     $senderName = $card->name;
+    //     $senderEmail = $card->email;
+        
+    //     // Create professional subject line
+    //     $subject = "Digital Business Card - " . $card->name;
+        
+    //     // Create personalized email body
+    //     $body = "Hi there!\n\n";
+    //     $body .= "I hope this message finds you well.\n\n";
+    //     $body .= "I'd like to share my digital business card with you for easy access to my contact information.\n\n";
+    //     $body .= "📱 View my digital card: " . $shortLink . "\n\n";
+    //     $body .= "You can save my contact details directly from the card.\n\n";
+        
+    //     // Add contact information if available
+    //     if ($card->email) {
+    //         $body .= "📧 Email: " . $card->email . "\n";
+    //     }
+    //     if ($card->whatsapp) {
+    //         $body .= "📞 WhatsApp: " . $card->whatsapp . "\n";
+    //     }
+    //     if ($card->website) {
+    //         $body .= "🌐 Website: " . $card->website . "\n";
+    //     }
+    //     if ($card->instagram) {
+    //         $body .= "📱 Instagram: @" . $card->instagram . "\n";
+    //     }
+        
+    //     $body .= "\nBest regards,\n" . $card->name;
+        
+    //     // Add professional signature if email exists
+    //     if ($card->email) {
+    //         $body .= "\n\n---\n";
+    //         $body .= $card->name . "\n";
+    //         $body .= $card->email;
+    //         if ($card->website) {
+    //             $body .= "\n" . $card->website;
+    //         }
+    //     }
+        
+    //     // Create mailto URL with proper encoding
+    //     $mailtoUrl = "mailto:?subject=" . urlencode($subject) . "&body=" . urlencode($body);
+        
+    //     // Add CC to sender's email if available
+    //     if ($senderEmail) {
+    //         $mailtoUrl .= "&cc=" . urlencode($senderEmail);
+    //     }
+        
+    //     return response()->json([
+    //         'mailto_url' => $mailtoUrl,
+    //         'subject' => $subject,
+    //         'body' => $body,
+    //         'short_link' => $shortLink,
+    //         'sender_email' => $senderEmail,
+    //         'sender_name' => $senderName,
+    //         'has_sender_email' => !empty($senderEmail),
+    //         'contact_info' => [
+    //             'email' => $card->email,
+    //             'whatsapp' => $card->whatsapp,
+    //             'website' => $card->website,
+    //             'instagram' => $card->instagram
+    //         ]
+    //     ]);
+    // }
+
     public function getEmailShare($id)
     {
         $card = Card::findOrFail($id);
         
-        // Get base URL from config - FIXED PATH
         $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/c/' . $card->code;  // FIXED: /c/ instead of /card/
+        $shortLink = $baseUrl . '/c/' . $card->code;
         
-        // Use card owner's information
-        $senderName = $card->name;
-        $senderEmail = $card->email;
-        
-        // Create professional subject line
+        // SHORTER EMAIL BODY
         $subject = "Digital Business Card - " . $card->name;
+        $body = "Hi!\n\nCheck out my digital business card: " . $shortLink . "\n\nBest regards,\n" . $card->name;
         
-        // Create personalized email body
-        $body = "Hi there!\n\n";
-        $body .= "I hope this message finds you well.\n\n";
-        $body .= "I'd like to share my digital business card with you for easy access to my contact information.\n\n";
-        $body .= "📱 View my digital card: " . $shortLink . "\n\n";
-        $body .= "You can save my contact details directly from the card.\n\n";
-        
-        // Add contact information if available
-        if ($card->email) {
-            $body .= "📧 Email: " . $card->email . "\n";
-        }
-        if ($card->whatsapp) {
-            $body .= "📞 WhatsApp: " . $card->whatsapp . "\n";
-        }
-        if ($card->website) {
-            $body .= "🌐 Website: " . $card->website . "\n";
-        }
-        if ($card->instagram) {
-            $body .= "📱 Instagram: @" . $card->instagram . "\n";
-        }
-        
-        $body .= "\nBest regards,\n" . $card->name;
-        
-        // Add professional signature if email exists
-        if ($card->email) {
-            $body .= "\n\n---\n";
-            $body .= $card->name . "\n";
-            $body .= $card->email;
-            if ($card->website) {
-                $body .= "\n" . $card->website;
-            }
-        }
-        
-        // Create mailto URL with proper encoding
         $mailtoUrl = "mailto:?subject=" . urlencode($subject) . "&body=" . urlencode($body);
-        
-        // Add CC to sender's email if available
-        if ($senderEmail) {
-            $mailtoUrl .= "&cc=" . urlencode($senderEmail);
-        }
         
         return response()->json([
             'mailto_url' => $mailtoUrl,
             'subject' => $subject,
             'body' => $body,
-            'short_link' => $shortLink,
-            'sender_email' => $senderEmail,
-            'sender_name' => $senderName,
-            'has_sender_email' => !empty($senderEmail),
-            'contact_info' => [
-                'email' => $card->email,
-                'whatsapp' => $card->whatsapp,
-                'website' => $card->website,
-                'instagram' => $card->instagram
-            ]
+            'short_link' => $shortLink
         ]);
     }
 
@@ -250,4 +271,59 @@ class CardController extends Controller
             'status_counts' => $statusCounts,
         ]);
     }
+
+    public function sendEmailToUser($id)
+        {
+            try {
+                \Log::info('Starting email send for card ID: ' . $id);
+                
+                $card = Card::findOrFail($id);
+                \Log::info('Found card: ' . $card->name . ', Email: ' . $card->email);
+                
+                // Check if card has email
+                if (!$card->email) {
+                    \Log::warning('Card has no email address');
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Card owner has no email address'
+                    ], 400);
+                }
+                
+                $baseUrl = config('app.frontend_url', 'http://localhost:8000');
+                $shortLink = $baseUrl . '/c/' . $card->code;
+                
+                $subject = "Your Digital Business Card is Ready - " . $card->name;
+                $body = "Hi " . $card->name . ",\n\n";
+                $body .= "Your digital business card is now active!\n\n";
+                $body .= "🔗 Your card link: " . $shortLink . "\n\n";
+                $body .= "You can share this link with anyone to showcase your contact information.\n\n";
+                $body .= "Best regards,\nCapinha Digital Team";
+                
+                \Log::info('About to send email to: ' . $card->email);
+                
+                // Send email using Laravel Mail
+                \Illuminate\Support\Facades\Mail::raw($body, function ($message) use ($card, $subject) {
+                    $message->to($card->email, $card->name)
+                            ->subject($subject);
+                });
+                
+                \Log::info('Email sent successfully');
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Email sent successfully to ' . $card->email,
+                    'recipient' => $card->email,
+                    'subject' => $subject
+                ]);
+                
+            } catch (\Exception $e) {
+                \Log::error('Email sending failed: ' . $e->getMessage());
+                \Log::error('Stack trace: ' . $e->getTraceAsString());
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send email: ' . $e->getMessage()
+                ], 500);
+            }
+        }
 }

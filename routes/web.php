@@ -27,6 +27,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/cards/{id}/whatsapp-share', [CardController::class, 'getWhatsAppLink']);
     Route::get('/cards/{id}/email-share', [CardController::class, 'getEmailShare']);
     Route::get('/cards/{id}/sharing-options', [CardController::class, 'getSharingOptions']);
+    Route::get('/cards/{id}/send-email', [CardController::class, 'sendEmailToUser']);
 });
 
 Route::middleware(['auth', 'verified'])->get('/analytics', function () {
