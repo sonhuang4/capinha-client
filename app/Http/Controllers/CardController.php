@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Card;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use App\Models\CardRequest;
 
 class CardController extends Controller
 {
@@ -15,22 +17,30 @@ class CardController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',  // ADDED: Email validation
-            'profile_picture' => 'nullable|url',
-            'logo' => 'nullable|url',
+            'email' => 'nullable|email',
             'whatsapp' => 'nullable|string',
             'instagram' => 'nullable|string',
-            'website' => 'nullable|url',
+            'website' => 'nullable|string',
+            'profile_picture' => 'nullable|string',
+            'logo' => 'nullable|string',
             'color_theme' => 'nullable|string',
-            'status' => 'in:pending,activated',
+            'request_id' => 'nullable|integer', 
         ]);
+        
+        $data['code'] = \Str::random(6); 
 
-        $validated['code'] = substr(md5(uniqid()), 0, 6);
-        $card = Card::create($validated);
+        $card = Card::create($data);
 
-        return response()->json($card, 201);
+        // If this card came from a request, mark it processed
+        if (!empty($data['request_id'])) {
+            \App\Models\CardRequest::where('id', $data['request_id'])->update([
+                'status' => 'processed',
+            ]);
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Card created successfully.');
     }
 
     public function update(Request $request, $id)
@@ -39,15 +49,23 @@ class CardController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'email' => 'nullable|email|max:255',  // ADDED: Email validation
+            'email' => 'nullable|email|max:255',
             'profile_picture' => 'nullable|url',
             'logo' => 'nullable|url',
             'whatsapp' => 'nullable|string',
             'instagram' => 'nullable|string',
-            'website' => 'nullable|url',
+            'website' => 'nullable|string',
             'color_theme' => 'nullable|string',
             'status' => 'in:pending,activated',
         ]);
+
+        if (!empty($validated['instagram']) && !str_starts_with($validated['instagram'], 'http')) {
+            $validated['instagram'] = 'https://instagram.com/' . ltrim($validated['instagram'], '@/');
+        }
+
+        if (!empty($validated['website']) && !str_starts_with($validated['website'], 'http')) {
+            $validated['website'] = 'https://' . ltrim($validated['website'], '/');
+        }
 
         $card->update($validated);
         return response()->json($card);
@@ -57,7 +75,12 @@ class CardController extends Controller
     {
         $card = Card::where('code', $code)->firstOrFail();
         $card->increment('click_count');
-        return response()->json($card);
+
+        return Inertia::render('PublicCardView', [
+            'card' => $card->only([
+                'id', 'name', 'email', 'profile_picture', 'whatsapp', 'instagram', 'website'
+            ])
+        ]);
     }
 
     public function toggleStatus($id)
@@ -325,5 +348,51 @@ class CardController extends Controller
                     'message' => 'Failed to send email: ' . $e->getMessage()
                 ], 500);
             }
+        }
+
+        public function storePublicRequest(Request $request)
+        {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'nullable|email|max:255',
+                'whatsapp' => 'nullable|string|max:30',
+                'instagram' => 'nullable|string|max:100',
+                'website' => 'nullable|string|max:255',
+                'profile_picture' => 'nullable|url',
+                'logo' => 'nullable|url',
+                'color_theme' => 'nullable|string|max:50',
+            ]);
+
+            CardRequest::create($validated);
+
+            return redirect('/request/thanks'); // optional thank-you page
+        }
+
+
+        public function create(Request $request)
+        {
+            $prefill = null;
+
+            if ($request->filled('request_id')) {
+                $cardRequest = \App\Models\CardRequest::find($request->input('request_id'));
+
+                if ($cardRequest) {
+                    $prefill = [
+                        'name' => $cardRequest->name,
+                        'email' => $cardRequest->email,
+                        'whatsapp' => $cardRequest->whatsapp,
+                        'instagram' => $cardRequest->instagram,
+                        'website' => $cardRequest->website,
+                        'profile_picture' => $cardRequest->profile_picture,
+                        'logo' => $cardRequest->logo,
+                        'color_theme' => $cardRequest->color_theme,
+                        'request_id' => $cardRequest->id,
+                    ];
+                }
+            }
+
+            return Inertia::render('CardForm', [
+                'prefill' => $prefill
+            ]);
         }
 }

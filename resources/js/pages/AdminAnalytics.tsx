@@ -5,7 +5,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, Users, Eye, CreditCard } from 'lucide-react';
 import AdminLayout from '@/layouts/admin-layouts';
 
-
 const AdminAnalytics = () => {
   const [stats, setStats] = useState<any | null>(null);
 
@@ -16,7 +15,7 @@ const AdminAnalytics = () => {
   }, []);
 
   if (!stats) {
-    return <div className="p-6 text-muted-foreground">Loading analytics...</div>;
+    return <div className="p-6 text-muted-foreground">Carregando análises...</div>;
   }
 
   const totalCards = stats.total_cards;
@@ -25,8 +24,8 @@ const AdminAnalytics = () => {
   const avgClicksPerCard = stats.avg_clicks;
   const chartData = stats.clicks_by_name;
   const statusData = stats.status_counts ? [
-    { name: 'Activated', value: stats.status_counts.activated || 0, color: '#10b981' },
-    { name: 'Pending', value: stats.status_counts.pending || 0, color: '#f59e0b' }
+    { name: 'Ativado', value: stats.status_counts.activated || 0, color: '#10b981' },
+    { name: 'Pendente', value: stats.status_counts.pending || 0, color: '#f59e0b' }
   ] : [];
 
   const StatCard = ({ title, value, icon: Icon, gradient }: any) => (
@@ -48,34 +47,34 @@ const AdminAnalytics = () => {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Analytics Dashboard
+            Painel de Análise
           </h1>
           <p className="text-muted-foreground mt-1">
-            Monitor your digital business cards performance
+            Monitore o desempenho dos seus cartões digitais
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="Total Cards"
+            title="Cartões Totais"
             value={totalCards}
             icon={CreditCard}
             gradient="from-blue-500 to-cyan-500"
           />
           <StatCard
-            title="Active Cards"
+            title="Cartões Ativos"
             value={activeCards}
             icon={Users}
             gradient="from-green-500 to-emerald-500"
           />
           <StatCard
-            title="Total Clicks"
+            title="Cliques Totais"
             value={totalClicks}
             icon={Eye}
             gradient="from-purple-500 to-pink-500"
           />
           <StatCard
-            title="Avg. Clicks/Card"
+            title="Média de Cliques/Cartão"
             value={avgClicksPerCard}
             icon={TrendingUp}
             gradient="from-orange-500 to-red-500"
@@ -84,7 +83,7 @@ const AdminAnalytics = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="material-card p-6">
-            <h3 className="text-lg font-semibold mb-4">Click Performance</h3>
+            <h3 className="text-lg font-semibold mb-4">Desempenho de Cliques</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -109,7 +108,7 @@ const AdminAnalytics = () => {
           </Card>
 
           <Card className="material-card p-6">
-            <h3 className="text-lg font-semibold mb-4">Card Status Distribution</h3>
+            <h3 className="text-lg font-semibold mb-4">Distribuição de Status dos Cartões</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie

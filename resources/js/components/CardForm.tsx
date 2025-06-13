@@ -1,142 +1,87 @@
-
-import React, { useState, useEffect } from 'react';
-import { BusinessCard, colorThemes } from '@/data/mockData';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import BusinessCardDisplay from './BusinessCardDisplay';
+import { colorThemes } from '@/data/mockData';
 
-interface CardFormProps {
-  card?: BusinessCard | null;
-  onSave: (cardData: Partial<BusinessCard>) => void;
-  onCancel: () => void;
-}
-
-const CardForm: React.FC<CardFormProps> = ({ card, onSave, onCancel }) => {
+const RequestCardForm = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    profilePicture: '',
-    logo: '',
     whatsapp: '',
     instagram: '',
     website: '',
-    colorTheme: 'blue' as keyof typeof colorThemes,
-    status: 'pending' as 'activated' | 'pending'
+    profile_picture: '',
+    logo: '',
+    color_theme: 'blue',
   });
 
-  useEffect(() => {
-    if (card) {
-      setFormData({
-        name: card.name,
-        email: card.email,
-        profilePicture: card.profilePicture || '',
-        logo: card.logo || '',
-        whatsapp: card.whatsapp || '',
-        instagram: card.instagram || '',
-        website: card.website || '',
-        colorTheme: card.colorTheme,
-        status: card.status
-      });
-    }
-  }, [card]);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-  };
-
-  const previewCard: BusinessCard = {
-    id: 'preview',
-    activationCode: 'preview',
-    clickCount: 0,
-    ...formData
+    router.post('/request-card', formData);
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="space-y-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <>
+      <Head title="Solicitar Cartão Digital" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-100 dark:from-gray-900 dark:to-gray-800 p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white dark:bg-gray-900 rounded-xl shadow-lg max-w-xl w-full p-8 space-y-6"
+        >
+          <h1 className="text-2xl font-bold text-center text-gray-800 dark:text-white">
+            Solicite seu Cartão Digital
+          </h1>
+
           <div>
-            <Label htmlFor="name">Name *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="John Smith"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="shohei.chen.dev@gmail.com"
-              required
-            />
+            <Label htmlFor="name">Nome completo *</Label>
+            <Input name="name" value={formData.name} onChange={handleChange} required />
           </div>
 
           <div>
-            <Label htmlFor="profilePicture">Profile Picture URL</Label>
-            <Input
-              id="profilePicture"
-              value={formData.profilePicture}
-              onChange={(e) => setFormData({ ...formData, profilePicture: e.target.value })}
-              placeholder="https://example.com/photo.jpg"
-            />
+            <Label htmlFor="email">Email</Label>
+            <Input name="email" type="email" value={formData.email} onChange={handleChange} />
           </div>
 
           <div>
-            <Label htmlFor="logo">Logo URL</Label>
-            <Input
-              id="logo"
-              value={formData.logo}
-              onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
-              placeholder="https://example.com/logo.jpg"
-            />
+            <Label htmlFor="whatsapp">WhatsApp</Label>
+            <Input name="whatsapp" value={formData.whatsapp} onChange={handleChange} />
           </div>
 
           <div>
-            <Label htmlFor="whatsapp">WhatsApp Number</Label>
-            <Input
-              id="whatsapp"
-              value={formData.whatsapp}
-              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-              placeholder="+1234567890"
-            />
+            <Label htmlFor="instagram">Instagram</Label>
+            <Input name="instagram" value={formData.instagram} onChange={handleChange} />
           </div>
 
           <div>
-            <Label htmlFor="instagram">Instagram Username</Label>
-            <Input
-              id="instagram"
-              value={formData.instagram}
-              onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-              placeholder="username"
-            />
+            <Label htmlFor="website">Website</Label>
+            <Input name="website" value={formData.website} onChange={handleChange} />
           </div>
 
           <div>
-            <Label htmlFor="website">Website URL</Label>
-            <Input
-              id="website"
-              value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              placeholder="https://example.com"
-            />
+            <Label htmlFor="profile_picture">Foto de Perfil (URL)</Label>
+            <Input name="profile_picture" value={formData.profile_picture} onChange={handleChange} />
           </div>
 
           <div>
-            <Label htmlFor="colorTheme">Color Theme</Label>
+            <Label htmlFor="logo">Logo (URL)</Label>
+            <Input name="logo" value={formData.logo} onChange={handleChange} />
+          </div>
+
+          <div>
+            <Label htmlFor="color_theme">Tema de Cor</Label>
             <Select
-              value={formData.colorTheme}
-              onValueChange={(value) => setFormData({ ...formData, colorTheme: value as keyof typeof colorThemes })}
+              value={formData.color_theme}
+              onValueChange={(value) => setFormData({ ...formData, color_theme: value })}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Escolha um tema de cor" />
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(colorThemes).map((theme) => (
@@ -148,39 +93,13 @@ const CardForm: React.FC<CardFormProps> = ({ card, onSave, onCancel }) => {
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => setFormData({ ...formData, status: value as 'activated' | 'pending' })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="activated">Activated</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button type="submit" className="gradient-button flex-1">
-              {card ? 'Update Card' : 'Create Card'}
-            </Button>
-            <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
-              Cancel
-            </Button>
-          </div>
+          <Button type="submit" className="w-full gradient-button">
+            Enviar Solicitação
+          </Button>
         </form>
       </div>
-
-      <div className="lg:sticky lg:top-4">
-        <h3 className="text-lg font-semibold mb-4">Live Preview</h3>
-        <BusinessCardDisplay card={previewCard} preview={true} />
-      </div>
-    </div>
+    </>
   );
 };
 
-export default CardForm;
+export default RequestCardForm;

@@ -67,13 +67,13 @@ const AdminDashboard = () => {
                 setCards(response.data);
             })
             .catch((error: any) => {
-                console.error('Error loading cards:', error);
+                console.error('Erro ao carregar cartões:', error);
             });
     }, []);
 
     const filteredCards = cards.filter(card => {
         const matchesSearch = card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            String(card.id).includes(searchTerm);
+            String(card.id).includes(searchTerm);
         const matchesStatus = statusFilter === 'all' || card.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
@@ -88,7 +88,7 @@ const AdminDashboard = () => {
                 )
             );
         } catch (error: any) {
-            console.error('Failed to toggle card status:', error);
+            console.error('Falha ao alternar o status do cartão:', error);
         }
     };
 
@@ -114,12 +114,12 @@ const AdminDashboard = () => {
             setIsFormOpen(false);
             setSelectedCard(null);
         } catch (error: any) {
-            console.error('Failed to save card:', error);
+            console.error('Falha ao salvar o cartão:', error);
 
             // Log the validation errors
             if (error.response && error.response.data) {
-                console.error('Validation errors:', error.response.data);
-                alert('Validation Error: ' + JSON.stringify(error.response.data));
+                console.error('Erros de validação:', error.response.data);
+                alert('Erro de validação: ' + JSON.stringify(error.response.data));
             }
         }
     };
@@ -147,10 +147,10 @@ const AdminDashboard = () => {
                 });
             }, 2000);
 
-            alert("Link Copied! Short link copied to clipboard");
+            alert("Link copiado! Link curto copiado para a área de transferência");
         } catch (error: any) {
-            console.error('Failed to copy short link:', error);
-            alert("Error: Failed to copy link");
+            console.error('Falha ao copiar link curto:', error);
+            alert("Falha ao copiar link curto:");
         }
     };
 
@@ -172,16 +172,16 @@ const AdminDashboard = () => {
                 if (!newWindow || newWindow.closed) {
                     // Copy message to clipboard as fallback
                     navigator.clipboard.writeText(fallback_message).then(() => {
-                        alert("WhatsApp link blocked. Message copied to clipboard! Paste it in WhatsApp manually.");
+                        alert("Link do WhatsApp bloqueado. Mensagem copiada para a área de transferência! Cole-a manualmente no WhatsApp.");
                     }).catch(() => {
-                        alert(`WhatsApp link blocked. Copy this message manually:\n\n${fallback_message}`);
+                        alert(`Link do WhatsApp bloqueado. Mensagem copiada para a área de transferência! Cole-a manualmente no WhatsApp.\n\n${fallback_message}`);
                     });
                 }
             }, 1000);
 
         } catch (error: any) {
-            console.error('Failed to get WhatsApp link:', error);
-            alert("Error: Failed to generate WhatsApp link");
+            console.error('Falha ao obter o link do WhatsApp:', error);
+            alert("Erro: Falha ao gerar link do WhatsApp");
         }
     };
 
@@ -196,22 +196,22 @@ const AdminDashboard = () => {
 
             // Try to copy to clipboard
             navigator.clipboard.writeText(emailContent).then(() => {
-                alert("✅ Email content copied to clipboard!\n\nYou can now:\n1. Open Gmail/Yahoo/Outlook\n2. Paste the content\n3. Add recipient email\n4. Send!");
+                alert("Conteúdo do e-mail copiado para a área de transferência!\n\nAgora você pode:\n1. Abrir o Gmail/Yahoo/Outlook\n2. Colar o conteúdo\n3. Adicionar o e-mail do destinatário\n4. Enviar!");
             }).catch(() => {
                 // Fallback if clipboard doesn't work
-                prompt("Copy this email content manually:", emailContent);
+                prompt("Copie este conteúdo de e-mail manualmente:", emailContent);
             });
 
         } catch (error: any) {
-            console.error('Failed to get email data:', error);
-            alert("Error: Failed to generate email content");
+            console.error('Falha ao obter dados de e-mail:', error);
+            alert("Erro: Falha ao gerar conteúdo de e-mail");
         }
     };
 
     // Send email directly to card owner
     const sendEmailToUser = async (card: ExtendedBusinessCard) => {
         if (!card.email) {
-            alert("⚠️ This card has no email address. Please add an email first.");
+            alert("⚠️ Este cartão não possui endereço de e-mail. Adicione um e-mail primeiro.");
             return;
         }
 
@@ -223,14 +223,14 @@ const AdminDashboard = () => {
             const response = await axios.get('/cards/' + card.id + '/send-email');
 
             if (response.data.success) {
-                alert("✅ Email sent successfully to: " + response.data.recipient);
+                alert("✅ E-mail enviado com sucesso para: " + response.data.recipient);
             } else {
-                alert("❌ Failed: " + response.data.message);
+                alert("❌ Fracassada: " + response.data.message);
             }
 
         } catch (error: any) {
-            console.error('Error sending email:', error);
-            alert("❌ Failed to send email. Check console for details.");
+            console.error('Erro ao enviar e-mail:', error);
+            alert("❌ Falha ao enviar o e-mail. Verifique o console para obter detalhes.");
         }
     };
 
@@ -240,7 +240,7 @@ const AdminDashboard = () => {
             const response = await axios.get(`/cards/${card.id}/sharing-options`);
             return response.data;
         } catch (error: any) {
-            console.error('Failed to get sharing options:', error);
+            console.error('Falha ao obter opções de compartilhamento:', error);
             return null;
         }
     };
@@ -285,17 +285,17 @@ const AdminDashboard = () => {
 
                 {/* Main Content */}
                 <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-                    
+
                     {/* Header Section */}
                     <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-1">
                             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                                Business Cards Management
+                                Gestão de Cartões de Visit
                             </h1>
                             <p className="text-sm sm:text-base text-muted-foreground">
-                                Create and manage digital business cards
+                                Crie e gerencie cartões de visita digitais
                             </p>
-                            
+
                             {/* Stats Row - Mobile First */}
                             <div className="flex flex-wrap gap-2 sm:gap-4 pt-2">
                                 <div className="flex items-center gap-1 text-xs sm:text-sm">
@@ -303,11 +303,11 @@ const AdminDashboard = () => {
                                     <Badge variant="outline" className="text-xs">{cards.length}</Badge>
                                 </div>
                                 <div className="flex items-center gap-1 text-xs sm:text-sm">
-                                    <span className="text-muted-foreground">Active:</span>
+                                    <span className="text-muted-foreground">Ativa:</span>
                                     <Badge variant="default" className="text-xs bg-green-100 text-green-800">{activatedCount}</Badge>
                                 </div>
                                 <div className="flex items-center gap-1 text-xs sm:text-sm">
-                                    <span className="text-muted-foreground">Pending:</span>
+                                    <span className="text-muted-foreground">Pendente:</span>
                                     <Badge variant="secondary" className="text-xs">{pendingCount}</Badge>
                                 </div>
                             </div>
@@ -321,7 +321,7 @@ const AdminDashboard = () => {
                                     onClick={() => setSelectedCard(null)}
                                 >
                                     <Plus className="w-4 h-4 mr-2" />
-                                    <span className="sm:inline">Create Card</span>
+                                    <span className="sm:inline">Criar cartão</span>
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -355,7 +355,7 @@ const AdminDashboard = () => {
                                     className="pl-10 w-full"
                                 />
                             </div>
-                            
+
                             {/* Filter Buttons */}
                             <div className="flex flex-wrap gap-2">
                                 <Button
@@ -364,7 +364,7 @@ const AdminDashboard = () => {
                                     onClick={() => setStatusFilter('all')}
                                     className="text-xs sm:text-sm"
                                 >
-                                    All Cards
+                                    Todos os cartões
                                 </Button>
                                 <Button
                                     size="sm"
@@ -372,7 +372,7 @@ const AdminDashboard = () => {
                                     onClick={() => setStatusFilter('activated')}
                                     className="text-xs sm:text-sm"
                                 >
-                                    Active ({activatedCount})
+                                    Ativa ({activatedCount})
                                 </Button>
                                 <Button
                                     size="sm"
@@ -380,9 +380,9 @@ const AdminDashboard = () => {
                                     onClick={() => setStatusFilter('pending')}
                                     className="text-xs sm:text-sm"
                                 >
-                                    Pending ({pendingCount})
+                                    Pendente ({pendingCount})
                                 </Button>
-                                
+
                                 {/* Results Count */}
                                 <div className="ml-auto flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                                     <span>Showing:</span>
@@ -402,7 +402,7 @@ const AdminDashboard = () => {
                                         <p className="text-sm">
                                             {searchTerm && `No cards match "${searchTerm}". `}
                                             {statusFilter !== 'all' && `No ${statusFilter} cards found. `}
-                                            Try adjusting your search or filter.
+                                            Tente ajustar sua pesquisa ou filtro.
                                         </p>
                                         <Button
                                             variant="outline"
@@ -418,8 +418,8 @@ const AdminDashboard = () => {
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        <p className="text-lg font-medium">No cards yet</p>
-                                        <p className="text-sm">Create your first digital business card to get started.</p>
+                                        <p className="text-lg font-medium">Nenhum cartão ainda</p>
+                                        <p className="text-sm">Crie seu primeiro cartão de visita digital para começar.</p>
                                     </div>
                                 )}
                             </div>
@@ -427,12 +427,11 @@ const AdminDashboard = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {filteredCards.map((card) => (
                                     <div key={card.id} className="group relative">
-                                        <div className={`relative rounded-xl p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
-                                            card.status === 'activated' 
-                                                ? 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-teal-950/50 border border-emerald-200/60 dark:border-emerald-700/50' 
+                                        <div className={`relative rounded-xl p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${card.status === 'activated'
+                                                ? 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-teal-950/50 border border-emerald-200/60 dark:border-emerald-700/50'
                                                 : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border border-amber-200/60 dark:border-amber-700/50'
-                                        }`}>
-                                            
+                                            }`}>
+
                                             {/* Smart Header */}
                                             <div className="flex items-start justify-between mb-4">
                                                 <div className="flex-1 min-w-0">
@@ -440,11 +439,10 @@ const AdminDashboard = () => {
                                                         <h3 className="font-bold text-base text-gray-900 dark:text-white truncate">
                                                             {card.name}
                                                         </h3>
-                                                        <div className={`w-2 h-2 rounded-full ${
-                                                            card.status === 'activated' ? 'bg-emerald-500' : 'bg-amber-500'
-                                                        }`}></div>
+                                                        <div className={`w-2 h-2 rounded-full ${card.status === 'activated' ? 'bg-emerald-500' : 'bg-amber-500'
+                                                            }`}></div>
                                                     </div>
-                                                    
+
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                                                             <span className="font-mono bg-white/60 dark:bg-gray-800/60 px-2 py-0.5 rounded-md">
@@ -455,7 +453,7 @@ const AdminDashboard = () => {
                                                                 {card.clickCount || 0} clicks
                                                             </span>
                                                         </div>
-                                                        
+
                                                         {card.email && (
                                                             <div className="text-xs text-blue-600 dark:text-blue-400 truncate">
                                                                 {card.email}
@@ -463,7 +461,7 @@ const AdminDashboard = () => {
                                                         )}
                                                     </div>
                                                 </div>
-                                                
+
                                                 <Switch
                                                     checked={card.status === 'activated'}
                                                     onCheckedChange={() => toggleCardStatus(card.id)}
@@ -481,7 +479,7 @@ const AdminDashboard = () => {
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </button>
-                                                    
+
                                                     <button
                                                         onClick={() => handlePreview(card)}
                                                         className="flex items-center justify-center p-2.5 text-xs font-medium rounded-lg bg-white/70 dark:bg-gray-800/70 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-all border border-white/50 dark:border-gray-700/50"
@@ -489,14 +487,13 @@ const AdminDashboard = () => {
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
-                                                    
+
                                                     <button
                                                         onClick={() => copyShortLink(card)}
-                                                        className={`flex items-center justify-center p-2.5 text-xs font-medium rounded-lg transition-all border ${
-                                                            copiedLinks.has(card.id) 
-                                                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600" 
+                                                        className={`flex items-center justify-center p-2.5 text-xs font-medium rounded-lg transition-all border ${copiedLinks.has(card.id)
+                                                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600"
                                                                 : "bg-white/70 dark:bg-gray-800/70 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-700 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 border-white/50 dark:border-gray-700/50"
-                                                        }`}
+                                                            }`}
                                                         title={copiedLinks.has(card.id) ? "Link Copied!" : "Copy Link"}
                                                     >
                                                         {copiedLinks.has(card.id) ? (
@@ -510,7 +507,7 @@ const AdminDashboard = () => {
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => shareOnWhatsApp(card)}
-                                                        className="flex-1 flex items-center justify-center p-3 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-sm hover:shadow-md transition-all"
+                                                        className="flex-1 flex items-center justify-center p-3 rounded-lg text-emerald-500 hover:text-emerald-600 shadow-sm hover:shadow-md transition-all"
                                                         title="Share on WhatsApp"
                                                     >
                                                         <MessageCircle className="w-5 h-5" />
@@ -518,7 +515,7 @@ const AdminDashboard = () => {
 
                                                     <button
                                                         onClick={() => shareViaEmail(card)}
-                                                        className="flex-1 flex items-center justify-center p-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-sm hover:shadow-md transition-all"
+                                                        className="flex-1 flex items-center justify-center p-3 rounded-lg text-blue-500 hover:text-blue-600 shadow-sm hover:shadow-md transition-all"
                                                         title="Share via Email"
                                                     >
                                                         <Mail className="w-5 h-5" />
@@ -527,7 +524,7 @@ const AdminDashboard = () => {
                                                     {card.email ? (
                                                         <button
                                                             onClick={() => sendEmailToUser(card)}
-                                                            className="flex-1 flex items-center justify-center p-3 rounded-lg bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-sm hover:shadow-md transition-all"
+                                                            className="flex-1 flex items-center justify-center p-3 rounded-lg text-purple-500 hover:text-purple-600 shadow-sm hover:shadow-md transition-all"
                                                             title={`Send activation email to ${card.email}`}
                                                         >
                                                             <Mail className="w-5 h-5" />
@@ -535,8 +532,8 @@ const AdminDashboard = () => {
                                                     ) : (
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <button 
-                                                                    className="flex-1 flex items-center justify-center p-3 rounded-lg bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white shadow-sm hover:shadow-md transition-all"
+                                                                <button
+                                                                    className="flex-1 flex items-center justify-center p-3 rounded-lg text-gray-500 hover:text-gray-600 shadow-sm hover:shadow-md transition-all"
                                                                     title="More sharing options"
                                                                 >
                                                                     <Share2 className="w-5 h-5" />
@@ -559,6 +556,7 @@ const AdminDashboard = () => {
                                                         </DropdownMenu>
                                                     )}
                                                 </div>
+
                                             </div>
                                         </div>
                                     </div>

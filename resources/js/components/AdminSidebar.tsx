@@ -17,9 +17,10 @@ import { Button } from '@/components/ui/button';
 import { Link, usePage } from '@inertiajs/react';
 
 const items = [
-  { title: 'Cards', url: '/dashboard', icon: CreditCard },
-  { title: 'Analytics', url: '/analytics', icon: BarChart3 },
-  { title: 'Settings', url: '/settings', icon: Settings },
+  { title: 'Cartões', url: '/dashboard', icon: CreditCard },
+  { title: 'Solicitações', url: '/admin/requests', icon: CreditCard }, 
+  { title: 'Análise', url: '/analytics', icon: BarChart3 },
+  { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 
 export function AdminSidebar() {
@@ -84,7 +85,7 @@ export function AdminSidebar() {
             className={`${collapsed ? 'w-10 h-10 p-0' : 'w-full'} hover:bg-red-50 hover:text-red-600 hover:border-red-200`}
           >
             <LogOut className="h-4 w-4" />
-            {!collapsed && <span className="ml-2">Logout</span>}
+            {!collapsed && <span className="ml-2">Sair</span>}
           </Button>
         </div>
       </SidebarContent>

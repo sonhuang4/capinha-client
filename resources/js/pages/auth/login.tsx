@@ -58,10 +58,10 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             <LogIn className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Welcome Back
+            Bem vindo de volta
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Enter your credentials to log in
+            Insira suas credenciais para efetuar login
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             disabled={processing}
           >
             {processing && <LoaderCircle className="w-4 h-4 animate-spin mr-2" />}
-            Log in
+            Conecte-se
           </Button>
         </form>
       </Card>

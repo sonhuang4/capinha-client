@@ -9,7 +9,6 @@ import { Settings, Bell, Shield, Palette } from 'lucide-react';
 import axios from 'axios';
 import AdminLayout from '@/layouts/admin-layouts';
 
-
 const AdminSettings = () => {
   const [form, setForm] = useState({
     platform_name: '',
@@ -37,7 +36,7 @@ const AdminSettings = () => {
   };
 
   const handleSubmit = () => {
-    axios.post('/settings/save', form).then(() => alert('Settings updated.'));
+    axios.post('/settings/save', form).then(() => alert('Configurações atualizadas.'));
   };
 
   const handleReset = () => {
@@ -49,9 +48,9 @@ const AdminSettings = () => {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Settings
+            Configurações
           </h1>
-          <p className="text-muted-foreground mt-1">Configure your platform settings and preferences</p>
+          <p className="text-muted-foreground mt-1">Configure as preferências e definições da plataforma</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -60,20 +59,20 @@ const AdminSettings = () => {
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
                 <Settings className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-semibold">General Settings</h3>
+              <h3 className="text-lg font-semibold">Configurações Gerais</h3>
             </div>
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="platformName">Platform Name</Label>
+                <Label htmlFor="platformName">Nome da Plataforma</Label>
                 <Input name="platform_name" value={form.platform_name} onChange={handleChange} />
               </div>
               <div>
-                <Label htmlFor="adminEmail">Admin Email</Label>
+                <Label htmlFor="adminEmail">E-mail do Administrador</Label>
                 <Input name="admin_email" type="email" value={form.admin_email} onChange={handleChange} />
               </div>
               <div>
-                <Label htmlFor="baseUrl">Base URL</Label>
+                <Label htmlFor="baseUrl">URL Base</Label>
                 <Input name="base_url" value={form.base_url} onChange={handleChange} />
               </div>
             </div>
@@ -84,28 +83,28 @@ const AdminSettings = () => {
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                 <Bell className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-semibold">Notifications</h3>
+              <h3 className="text-lg font-semibold">Notificações</h3>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                  <Label>Notificações por E-mail</Label>
+                  <p className="text-sm text-muted-foreground">Receber notificações por e-mail</p>
                 </div>
                 <Switch checked={form.email_notifications} onCheckedChange={() => handleToggle('email_notifications')} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Card Creation Alerts</Label>
-                  <p className="text-sm text-muted-foreground">Get notified when new cards are created</p>
+                  <Label>Alertas de Criação de Cartão</Label>
+                  <p className="text-sm text-muted-foreground">Notifique-se quando novos cartões forem criados</p>
                 </div>
                 <Switch checked={form.card_alerts} onCheckedChange={() => handleToggle('card_alerts')} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Analytics Reports</Label>
-                  <p className="text-sm text-muted-foreground">Weekly analytics summary</p>
+                  <Label>Relatórios Analíticos</Label>
+                  <p className="text-sm text-muted-foreground">Resumo semanal de análises</p>
                 </div>
                 <Switch checked={form.analytics_reports} onCheckedChange={() => handleToggle('analytics_reports')} />
               </div>
@@ -117,25 +116,25 @@ const AdminSettings = () => {
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-semibold">Security</h3>
+              <h3 className="text-lg font-semibold">Segurança</h3>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">Enable 2FA for enhanced security</p>
+                  <Label>Autenticação em Dois Fatores</Label>
+                  <p className="text-sm text-muted-foreground">Ative 2FA para maior segurança</p>
                 </div>
                 <Switch checked={form.two_factor} onCheckedChange={() => handleToggle('two_factor')} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Auto-logout</Label>
-                  <p className="text-sm text-muted-foreground">Automatically logout after inactivity</p>
+                  <Label>Logout Automático</Label>
+                  <p className="text-sm text-muted-foreground">Desconectar automaticamente após inatividade</p>
                 </div>
                 <Switch checked={form.auto_logout} onCheckedChange={() => handleToggle('auto_logout')} />
               </div>
-              <Button variant="outline" className="w-full">Change Password</Button>
+              <Button variant="outline" className="w-full">Alterar Senha</Button>
             </div>
           </Card>
 
@@ -144,12 +143,12 @@ const AdminSettings = () => {
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
                 <Palette className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-semibold">Appearance</h3>
+              <h3 className="text-lg font-semibold">Aparência</h3>
             </div>
 
             <div className="space-y-4">
               <div>
-                <Label>Default Card Theme</Label>
+                <Label>Tema Padrão do Cartão</Label>
                 <select
                   name="theme"
                   value={form.theme}
@@ -165,8 +164,8 @@ const AdminSettings = () => {
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Dark Mode</Label>
-                  <p className="text-sm text-muted-foreground">Use dark theme for admin panel</p>
+                  <Label>Modo Escuro</Label>
+                  <p className="text-sm text-muted-foreground">Usar tema escuro no painel administrativo</p>
                 </div>
                 <Switch checked={form.dark_mode} onCheckedChange={() => handleToggle('dark_mode')} />
               </div>
@@ -175,8 +174,8 @@ const AdminSettings = () => {
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={handleReset}>Reset to Defaults</Button>
-          <Button className="gradient-button" onClick={handleSubmit}>Save Changes</Button>
+          <Button variant="outline" onClick={handleReset}>Restaurar Padrões</Button>
+          <Button className="gradient-button" onClick={handleSubmit}>Salvar Alterações</Button>
         </div>
       </div>
     </AdminLayout>
