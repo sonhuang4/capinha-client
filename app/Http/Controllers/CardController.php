@@ -268,8 +268,9 @@ class CardController extends Controller
 
     public function analytics()
     {
-        $cards = \App\Models\Card::all();
+        $filter = request()->get('filter', 'all');
 
+        $cards = \App\Models\Card::all();
         $totalCards = $cards->count();
         $activeCards = $cards->where('status', 'activated')->count();
         $totalClicks = $cards->sum('click_count');
@@ -285,6 +286,31 @@ class CardController extends Controller
             'pending' => $totalCards - $activeCards
         ];
 
+        // ✅ Build activation query with date filter
+        $activationQuery = \App\Models\Activation::query();
+
+        if ($filter === 'today') {
+            $activationQuery->whereDate('created_at', today());
+        } elseif ($filter === '7days') {
+            $activationQuery->where('created_at', '>=', now()->subDays(7));
+        } elseif ($filter === 'month') {
+            $activationQuery->whereMonth('created_at', now()->month)
+                            ->whereYear('created_at', now()->year);
+        }
+
+        $totalActivations = $activationQuery->count();
+
+        $activationsByCard = $activationQuery->selectRaw('card_id, COUNT(*) as count')
+            ->groupBy('card_id')
+            ->with('card:id,name')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'name' => $row->card->name ?? 'Desconhecido',
+                    'activations' => $row->count
+                ];
+            });
+
         return response()->json([
             'total_cards' => $totalCards,
             'active_cards' => $activeCards,
@@ -292,8 +318,11 @@ class CardController extends Controller
             'avg_clicks' => $avgClicks,
             'clicks_by_name' => $clicksByName,
             'status_counts' => $statusCounts,
+            'total_activations' => $totalActivations,
+            'activations_by_card' => $activationsByCard,
         ]);
     }
+
 
     public function sendEmailToUser($id)
         {

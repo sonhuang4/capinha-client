@@ -428,8 +428,8 @@ const AdminDashboard = () => {
                                 {filteredCards.map((card) => (
                                     <div key={card.id} className="group relative">
                                         <div className={`relative rounded-xl p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${card.status === 'activated'
-                                                ? 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-teal-950/50 border border-emerald-200/60 dark:border-emerald-700/50'
-                                                : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border border-amber-200/60 dark:border-amber-700/50'
+                                            ? 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-teal-950/50 border border-emerald-200/60 dark:border-emerald-700/50'
+                                            : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border border-amber-200/60 dark:border-amber-700/50'
                                             }`}>
 
                                             {/* Smart Header */}
@@ -487,12 +487,11 @@ const AdminDashboard = () => {
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
-
                                                     <button
                                                         onClick={() => copyShortLink(card)}
                                                         className={`flex items-center justify-center p-2.5 text-xs font-medium rounded-lg transition-all border ${copiedLinks.has(card.id)
-                                                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600"
-                                                                : "bg-white/70 dark:bg-gray-800/70 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-700 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 border-white/50 dark:border-gray-700/50"
+                                                            ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600"
+                                                            : "bg-white/70 dark:bg-gray-800/70 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-700 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 border-white/50 dark:border-gray-700/50"
                                                             }`}
                                                         title={copiedLinks.has(card.id) ? "Link Copied!" : "Copy Link"}
                                                     >
@@ -503,7 +502,12 @@ const AdminDashboard = () => {
                                                         )}
                                                     </button>
                                                 </div>
-
+                                                <a href={`/cards/${card.id}/activations`} className="text-sm text-blue-600 hover:underline">
+                                                    📊 Ver Ativações
+                                                </a>
+                                                <a href={`/cards/${card.id}/qr`} className="text-xs text-blue-500 hover:underline">
+                                                    📷 Ver QR Code
+                                                </a>
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => shareOnWhatsApp(card)}

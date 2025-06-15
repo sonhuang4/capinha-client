@@ -7,12 +7,14 @@ import AdminLayout from '@/layouts/admin-layouts';
 
 const AdminAnalytics = () => {
   const [stats, setStats] = useState<any | null>(null);
+  const [filter, setFilter] = useState('all'); // default = all time
+
 
   useEffect(() => {
-    axios.get('/analytics/data')
+    axios.get('/analytics/data', { params: { filter } })
       .then((res) => setStats(res.data))
       .catch((err) => console.error('Failed to load analytics:', err));
-  }, []);
+  }, [filter]);
 
   if (!stats) {
     return <div className="p-6 text-muted-foreground">Carregando análises...</div>;
@@ -22,7 +24,9 @@ const AdminAnalytics = () => {
   const activeCards = stats.active_cards;
   const totalClicks = stats.total_clicks;
   const avgClicksPerCard = stats.avg_clicks;
+  const totalActivations = stats.total_activations;
   const chartData = stats.clicks_by_name;
+  const activationsData = stats.activations_by_card;
   const statusData = stats.status_counts ? [
     { name: 'Ativado', value: stats.status_counts.activated || 0, color: '#10b981' },
     { name: 'Pendente', value: stats.status_counts.pending || 0, color: '#f59e0b' }
@@ -52,9 +56,21 @@ const AdminAnalytics = () => {
           <p className="text-muted-foreground mt-1">
             Monitore o desempenho dos seus cartões digitais
           </p>
+          <div className="mt-4">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="px-3 py-2 border rounded-md text-sm dark:bg-gray-900 dark:border-gray-700"
+            >
+              <option value="all">📊 Todos os tempos</option>
+              <option value="today">📆 Hoje</option>
+              <option value="7days">🗓️ Últimos 7 dias</option>
+              <option value="month">📅 Este mês</option>
+            </select>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <StatCard
             title="Cartões Totais"
             value={totalCards}
@@ -78,6 +94,12 @@ const AdminAnalytics = () => {
             value={avgClicksPerCard}
             icon={TrendingUp}
             gradient="from-orange-500 to-red-500"
+          />
+          <StatCard
+            title="Total de Ativações"
+            value={totalActivations}
+            icon={Eye}
+            gradient="from-indigo-500 to-violet-500"
           />
         </div>
 
@@ -146,6 +168,19 @@ const AdminAnalytics = () => {
             </div>
           </Card>
         </div>
+
+        <Card className="material-card p-6">
+          <h3 className="text-lg font-semibold mb-4">Ativações por Cartão</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={activationsData}>
+              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <XAxis dataKey="name" fontSize={12} />
+              <YAxis fontSize={12} />
+              <Tooltip />
+              <Bar dataKey="activations" fill="#34d399" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
       </div>
     </AdminLayout>
   );

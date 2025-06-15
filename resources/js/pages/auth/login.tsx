@@ -120,6 +120,9 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             {processing && <LoaderCircle className="w-4 h-4 animate-spin mr-2" />}
             Conecte-se
           </Button>
+          <TextLink href={route('register')} className="underline text-xs">
+            Sign Up
+          </TextLink>
         </form>
       </Card>
     </div>

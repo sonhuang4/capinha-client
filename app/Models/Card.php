@@ -22,4 +22,14 @@ class Card extends Model
         'code',
         'click_count',
     ];
+
+    public function activations()
+    {
+        return $this->hasMany(\App\Models\Activation::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
