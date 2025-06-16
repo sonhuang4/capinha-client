@@ -31,7 +31,7 @@ const LandingPage = () => {
             Capinha Digital
           </h1>
           <a
-            href="/login"
+            href="/auth/redirect"
             className="text-sm text-blue-700 dark:text-blue-300 hover:underline flex items-center gap-1"
           >
             <LogIn className="w-4 h-4" />
