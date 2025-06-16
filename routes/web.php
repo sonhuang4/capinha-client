@@ -9,6 +9,23 @@ use App\Http\Controllers\CardRequestController;
 use App\Models\Card;
 use App\Models\Activation;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Http\Controllers\PaymentController;
+
+Route::get('/purchase', function () {
+    return Inertia::render('Purchase');
+})->name('purchase');
+
+Route::post('/purchase/process', [PaymentController::class, 'process'])->name('purchase.process');
+Route::get('/purchase/success', [PaymentController::class, 'success'])->name('purchase.success');
+Route::post('/purchase/webhook', [PaymentController::class, 'webhook'])->name('purchase.webhook');
+
+// Card routes
+Route::get('/create-card', [CardController::class, 'create'])->name('card.create');
+Route::post('/cards/create-client', [CardController::class, 'storeClient'])->name('card.store-client');
+Route::get('/card-success/{slug}', [CardController::class, 'success'])->name('card.success');
+
+// Public card view
+Route::get('/c/{slug}', [CardController::class, 'publicView'])->name('card.public');
 
 // 🌐 Public routes
 Route::get('/', fn () => Inertia::render('LandingPage'));
@@ -40,7 +57,7 @@ Route::middleware(['auth'])->get('/auth/redirect', function () {
     $user = Auth::user();
     return $user->role === 'admin'
         ? redirect('/dashboard')
-        : redirect('/request');
+        : redirect('/client/dashboard');
 });
 
 // ⚙️ Admin dashboard and tools (manual role check)
@@ -133,6 +150,10 @@ Route::get('/cards/{id}/activations/export', function ($id) {
         fclose($handle);
     }, 200, $headers);
 });
+
+Route::get('/purchase', function () {
+    return Inertia::render('Purchase');
+})->name('purchase');
 
 // 📥 Create card form (admin only)
 Route::get('/cards/create', [CardController::class, 'create'])->middleware(['auth']);
