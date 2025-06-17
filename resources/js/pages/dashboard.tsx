@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Search, Edit, Eye, Copy, MessageCircle, Mail, Share2, Check, Menu, X, Filter } from 'lucide-react';
+import { Plus, Search, Delete, Eye, Copy, MessageCircle, Mail, Share2, Check, Menu, X, Filter } from 'lucide-react';
 import BusinessCardDisplay from '@/components/BusinessCardDisplay';
 import CardForm from '@/components/CardForm';
 import AdminLayout from '@/layouts/admin-layouts';
+import { Head, router } from '@inertiajs/react';
 import {
     Dialog,
     DialogContent,
@@ -92,9 +93,29 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleEditCard = (card: ExtendedBusinessCard) => {
-        setSelectedCard(card);
-        setIsFormOpen(true);
+    const handleDeleteCard = async (card: ExtendedBusinessCard) => {
+        if (!confirm(`⚠️ Confirmação de Exclusão\n\nTem certeza que deseja deletar o cartão de "${card.name}"?\n\nEsta ação não pode ser desfeita e o cartão será permanentemente removido.`)) {
+            return;
+        }
+
+        try {
+            await axios.delete(`/cards/${card.id}`);
+
+            // Remove card from local state
+            setCards(prev => prev.filter(c => c.id !== card.id));
+
+            alert('Sucesso!\n\nCartão deletado com sucesso!');
+        } catch (error: any) {
+            console.error('Failed to delete card:', error);
+
+            if (error.response?.status === 403) {
+                alert('Erro!\n\nVocê não tem permissão para deletar este cartão.');
+            } else if (error.response?.status === 404) {
+                alert('Erro!\n\nCartão não encontrado.');
+            } else {
+                alert('Erro!\n\nNão foi possível deletar o cartão. Tente novamente.');
+            }
+        }
     };
 
     const handleSaveCard = async (cardData: Partial<ExtendedBusinessCard>) => {
@@ -314,16 +335,16 @@ const AdminDashboard = () => {
                         </div>
 
                         {/* Create Button */}
-                        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                            <DialogTrigger asChild>
+                        {/* <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                            <DialogTrigger asChild> */}
                                 <Button
                                     className="w-full sm:w-auto gradient-button"
-                                    onClick={() => setSelectedCard(null)}
+                                    onClick={() => router.visit('/cards/create')}
                                 >
                                     <Plus className="w-4 h-4 mr-2" />
                                     <span className="sm:inline">Criar cartão</span>
                                 </Button>
-                            </DialogTrigger>
+                            {/* </DialogTrigger>
                             <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
                                     <DialogTitle>
@@ -339,7 +360,7 @@ const AdminDashboard = () => {
                                     }}
                                 />
                             </DialogContent>
-                        </Dialog>
+                        </Dialog> */}
                     </div>
 
                     {/* Search and Filter Section */}
@@ -473,11 +494,11 @@ const AdminDashboard = () => {
                                             <div className="space-y-3">
                                                 <div className="grid grid-cols-3 gap-2">
                                                     <button
-                                                        onClick={() => handleEditCard(card)}
+                                                        onClick={() => handleDeleteCard(card)}
                                                         className="flex items-center justify-center p-2.5 text-xs font-medium rounded-lg bg-white/70 dark:bg-gray-800/70 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all border border-white/50 dark:border-gray-700/50"
-                                                        title="Edit Card"
+                                                        title="Delete Card"
                                                     >
-                                                        <Edit className="w-4 h-4" />
+                                                        <Delete className="w-4 h-4" />
                                                     </button>
 
                                                     <button

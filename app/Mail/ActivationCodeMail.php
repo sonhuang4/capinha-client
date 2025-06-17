@@ -20,7 +20,23 @@ class ActivationCodeMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Seu código de ativação - Capinha Digital')
-                    ->view('emails.activation-code');
+        $planNames = [
+            'basic' => 'Básico',
+            'premium' => 'Premium', 
+            'business' => 'Empresarial'
+        ];
+
+        return $this->subject('Seu Cartão Digital foi Adquirido com Sucesso! - Capinha Digital')
+                    ->view('emails.activation-code')
+                    ->with([
+                        'customer_name' => $this->activationCode->customer_name,
+                        'activation_code' => $this->activationCode->code,
+                        'plan_name' => $planNames[$this->activationCode->plan] ?? $this->activationCode->plan,
+                        'amount' => $this->activationCode->amount,
+                        'payment_method' => $this->activationCode->payment_method === 'pix' ? 'PIX' : 'Cartão de Crédito',
+                        'creation_url' => route('card.create', ['activation_code' => $this->activationCode->code]),
+                        'support_email' => 'suporte@capinhadigital.com.br',
+                        'company_name' => 'Capinha Digital',
+                    ]);
     }
 }

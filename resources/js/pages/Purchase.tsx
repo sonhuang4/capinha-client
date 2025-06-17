@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  Check, 
-  Star, 
-  Shield, 
-  Zap, 
+import {
+  ArrowLeft,
+  Check,
+  Star,
+  Shield,
+  Zap,
   Users,
   CreditCard,
   Smartphone,
@@ -29,7 +29,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
   const [currentPlan, setCurrentPlan] = useState(selectedPlan);
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'credit'>('pix');
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const [customerForm, setCustomerForm] = useState({
     name: '',
     email: '',
@@ -100,9 +100,9 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
   };
 
   const isFormValid = () => {
-    return customerForm.name.trim() !== '' && 
-           customerForm.email.trim() !== '' && 
-           customerForm.phone.trim() !== '';
+    return customerForm.name.trim() !== '' &&
+      customerForm.email.trim() !== '' &&
+      customerForm.phone.trim() !== '';
   };
 
   const handlePurchase = async (e: React.FormEvent) => {
@@ -139,7 +139,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20 py-8 px-4">
       <Head title="Finalizar Compra - Capinha Digital" />
-      
+
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -147,14 +147,14 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
             <ArrowLeft className="w-4 h-4" />
             Voltar ao Início
           </Link>
-          
+
           <div className="text-center">
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Capinha Digital
             </h1>
             <p className="text-sm text-muted-foreground">Finalize sua compra</p>
           </div>
-          
+
           <ThemeToggle />
         </div>
 
@@ -176,21 +176,20 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
 
       <div className="max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-3 gap-8">
-          
+
           {/* Plans Selection */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-6">Escolha seu plano</h2>
-              
+
               <div className="grid gap-4">
                 {plans.map((plan) => (
                   <div
                     key={plan.id}
-                    className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      currentPlan === plan.id
+                    className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${currentPlan === plan.id
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                    }`}
+                      }`}
                     onClick={() => setCurrentPlan(plan.id)}
                   >
                     {plan.badge && (
@@ -198,7 +197,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                         {plan.badge}
                       </Badge>
                     )}
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -220,9 +219,9 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                             </span>
                           </div>
                         </div>
-                        
+
                         <p className="text-sm text-muted-foreground mb-3">{plan.description}</p>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
                           {plan.features.map((feature, index) => (
                             <div key={index} className="flex items-center gap-2">
@@ -241,7 +240,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
             {/* Customer Information */}
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-6">Suas informações</h2>
-              
+
               <form onSubmit={handlePurchase} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -257,7 +256,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="email" className="text-sm font-medium">
                       E-mail *
@@ -288,7 +287,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="document" className="text-sm font-medium">
                       CPF (Opcional)
@@ -306,16 +305,15 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                 {/* Payment Method */}
                 <div className="pt-6 border-t">
                   <h3 className="text-lg font-semibold mb-4">Forma de pagamento</h3>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('pix')}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        paymentMethod === 'pix'
+                      className={`p-4 rounded-lg border-2 transition-all ${paymentMethod === 'pix'
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
@@ -331,11 +329,10 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('credit')}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        paymentMethod === 'credit'
+                      className={`p-4 rounded-lg border-2 transition-all ${paymentMethod === 'credit'
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
@@ -364,6 +361,13 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                       </span>
                     )}
                   </Button>
+                  <Button
+                    className='w-full gradient-button py-3 text-lg font-semibold mt-[10px]'
+                    onClick={() => {
+                      router.visit('/create-card')
+                    }}>
+                    Without plan
+                  </Button>
                 </div>
               </form>
             </Card>
@@ -373,7 +377,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
           <div className="space-y-6">
             <Card className="p-6 sticky top-8">
               <h3 className="text-lg font-semibold mb-4">Resumo do pedido</h3>
-              
+
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
@@ -393,7 +397,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                     <span>Total</span>
                     <span className="text-green-600">R$ {selectedPlanData.price.toFixed(2)}</span>
                   </div>
-                  
+
                   <div className="text-sm text-center text-muted-foreground mt-2">
                     Pagamento único • Sem mensalidades
                   </div>
@@ -436,6 +440,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                 </div>
               </div>
             </Card>
+
           </div>
         </div>
       </div>

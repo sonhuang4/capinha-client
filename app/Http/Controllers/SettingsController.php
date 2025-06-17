@@ -117,7 +117,7 @@ class SettingsController extends Controller
     {
         return [
             'platform_name' => config('app.name', 'Capinha Digital'),
-            'admin_email' => config('mail.from.address', 'admin@capinhadigital.com.br'),
+            'admin_email' => config('mail.from.address', 'walivros@gmail.com'),
             'base_url' => config('app.url', 'http://localhost:8000'),
             'email_notifications' => true,
             'card_alerts' => false,

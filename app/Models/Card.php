@@ -11,6 +11,7 @@ class Card extends Model
 
     protected $fillable = [
         // Existing fields
+        'user_id',
         'name',
         'email',
         'profile_picture',
@@ -178,5 +179,33 @@ class Card extends Model
     public function scopeAdminCreated($query)
     {
         return $query->whereNull('activation_code');
+    }
+
+    public function getDisplayNameAttribute()
+{
+    if ($this->job_title && $this->company) {
+        return $this->name . ' - ' . $this->job_title . ' at ' . $this->company;
+    } elseif ($this->job_title) {
+        return $this->name . ' - ' . $this->job_title;
+    }
+    
+    return $this->name;
+}
+
+/**
+ * Get primary contact method
+ */
+    public function getPrimaryContactAttribute()
+    {
+        return $this->email ?: $this->whatsapp ?: $this->phone ?: 'Não informado';
+    }
+
+    /**
+     * Check if request has complete information
+     */
+    public function isComplete()
+    {
+        return !empty($this->name) && 
+            (!empty($this->email) || !empty($this->phone) || !empty($this->whatsapp));
     }
 }
