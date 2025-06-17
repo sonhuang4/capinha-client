@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Head, router, usePage } from '@inertiajs/react';
 import {
   ArrowLeft,
   Plus,
@@ -22,222 +21,235 @@ import {
   Settings,
   ExternalLink,
   Copy,
-  CheckCircle
+  CheckCircle,
+  AlertCircle,
+  X
 } from 'lucide-react';
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  phone?: string;
-  plan: string;
-  created_at: string;
-}
-
-interface Card {
-  id: number;
-  name: string;
-  title?: string;
-  company?: string;
-  email?: string;
-  phone?: string;
-  whatsapp?: string;
-  website?: string;
-  location?: string;
-  theme: string;
-  code: string;
-  unique_slug?: string;
-  profile_picture?: string;
-  logo?: string;
-  views: number;
-  downloads: number;
-  status: string;
-  isPremium?: boolean;
-  createdAt: string;
-  createdAtFormatted: string;
-  cardUrl: string;
-  editUrl?: string;
-  qrUrl?: string;
-}
-
-interface Stats {
-  totalCards: number;
-  totalViews: number;
-  totalDownloads: number;
-  activeCards: number;
-  premiumCards?: number;
-}
-
-interface PageProps {
-  user?: User;
-  userCards?: Card[];
-  stats?: Stats;
-  // Handle potential different prop names from your controller
-  auth?: {
-    user: User;
-  };
-  cards?: Card[];
-}
-
-const ClientDashboard: React.FC = () => {
-  const pageProps = usePage<PageProps>().props;
+// UI Components (same as RequestCardForm)
+const Button = ({ 
+  variant = 'default', 
+  size = 'default', 
+  className = '', 
+  disabled = false,
+  children, 
+  ...props 
+}) => {
+  const baseClass = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
   
-  // Handle different possible prop structures
-  const user = pageProps.user || pageProps.auth?.user || {
-    id: 0,
-    name: 'User',
-    email: 'user@example.com',
-    plan: 'Free',
-    created_at: new Date().toLocaleDateString()
+  const variants = {
+    default: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
+    outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500",
+    destructive: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+    ghost: "hover:bg-gray-100 text-gray-700"
   };
   
-  const userCards = pageProps.userCards || pageProps.cards || [];
-  const stats = pageProps.stats || {
-    totalCards: userCards.length,
-    totalViews: userCards.reduce((sum, card) => sum + (card.views || 0), 0),
-    totalDownloads: userCards.reduce((sum, card) => sum + (card.downloads || 0), 0),
-    activeCards: userCards.filter(card => card.status === 'activated').length,
-    premiumCards: userCards.filter(card => card.isPremium).length,
+  const sizes = {
+    sm: "px-3 py-1.5 text-sm",
+    default: "px-4 py-2",
+    lg: "px-6 py-3 text-lg"
   };
+  
+  return (
+    <button
+      className={`${baseClass} ${variants[variant]} ${sizes[size]} ${className}`}
+      disabled={disabled}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
 
-  const [darkMode, setDarkMode] = useState(false);
-  const [showCardMenu, setShowCardMenu] = useState<number | null>(null);
-  const [cards, setCards] = useState<Card[]>(userCards);
-
-  // Debug logging
-  console.log('Page Props:', pageProps);
-  console.log('User:', user);
-  console.log('Cards:', cards);
-  console.log('Stats:', stats);
-
-  const handleDeleteCard = (cardId: number) => {
-    if (!confirm('Tem certeza que deseja excluir este cartão? Esta ação não pode ser desfeita.')) {
-      return;
-    }
-
-    // Call backend to delete card
-    router.delete(`/client/cards/${cardId}`, {
-      onSuccess: () => {
-        setCards(cards => cards.filter(card => card.id !== cardId));
-        setShowCardMenu(null);
-        alert('Cartão excluído com sucesso!');
-      },
-      onError: (errors) => {
-        console.error('Delete error:', errors);
-        alert('Erro ao excluir cartão. Tente novamente.');
-      }
-    });
+const Alert = ({ variant = 'default', className = '', children, onClose, ...props }) => {
+  const variants = {
+    default: "bg-blue-50 border-blue-200 text-blue-800",
+    destructive: "bg-red-50 border-red-200 text-red-800",
+    success: "bg-green-50 border-green-200 text-green-800"
   };
+  
+  return (
+    <div className={`p-4 rounded-md border ${variants[variant]} ${className} relative`} {...props}>
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 p-1 rounded hover:bg-black/10"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+      {children}
+    </div>
+  );
+};
 
-  const handleEditCard = (card: Card) => {
-    // Navigate to edit page
-    if (card.editUrl) {
-      router.visit(card.editUrl);
-    } else {
-      // Fallback to create page with prefilled data
-      router.visit('/create-card', {
-        data: {
-          edit_card_id: card.id,
-          prefill: {
-            name: card.name,
-            job_title: card.title,
-            company: card.company,
-            email: card.email,
-            phone: card.phone,
-            whatsapp: card.whatsapp,
-            website: card.website,
-            location: card.location,
-            color_theme: card.theme.replace('gradient-', ''),
-            profile_picture: card.profile_picture,
-            logo: card.logo
-          }
-        }
-      });
-    }
-  };
+const AlertDescription = ({ className = '', children, ...props }) => (
+  <div className={`text-sm ${className}`} {...props}>
+    {children}
+  </div>
+);
 
-  const handleViewCard = (card: Card) => {
-    // Open card in new tab
-    window.open(card.cardUrl, '_blank');
-  };
+// Confirmation Modal Component
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, confirmText = "Confirmar", confirmVariant = "destructive" }) => {
+  if (!isOpen) return null;
 
-  const handleShareCard = (card: Card) => {
-    // Copy URL to clipboard
-    navigator.clipboard.writeText(card.cardUrl).then(() => {
-      alert('Link copiado para a área de transferência!');
-      setShowCardMenu(null);
-    }).catch(() => {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = card.cardUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        alert('Link copiado para a área de transferência!');
-      } catch (err) {
-        alert('Link do cartão: ' + card.cardUrl);
-      }
-      document.body.removeChild(textArea);
-      setShowCardMenu(null);
-    });
-  };
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{description}</p>
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button variant={confirmVariant} onClick={onConfirm}>
+            {confirmText}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-  const handleDownloadQR = (card: Card) => {
-    if (card.qrUrl) {
-      window.open(card.qrUrl, '_blank');
-    } else {
-      // Fallback: show QR URL for manual access
-      alert('QR Code disponível em: ' + card.cardUrl);
-    }
-    setShowCardMenu(null);
-  };
+// Navigation helper functions
+const navigateToRoute = (path) => {
+  window.location.href = path;
+};
 
-  const handleDuplicateCard = (card: Card) => {
-    router.post(`/client/cards/${card.id}/duplicate`, {}, {
-      onSuccess: (response) => {
-        // Refresh the page to show the new card
-        router.reload();
-        alert('Cartão duplicado com sucesso!');
-      },
-      onError: (errors) => {
-        console.error('Duplicate error:', errors);
-        alert('Erro ao duplicar cartão. Tente novamente.');
-      }
-    });
-    setShowCardMenu(null);
-  };
-
-  const handleToggleStatus = (card: Card) => {
-    const newStatus = card.status === 'activated' ? 'draft' : 'activated';
-    const action = newStatus === 'activated' ? 'ativar' : 'desativar';
+const submitForm = async (url, data, method = 'POST') => {
+  try {
+    let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    if (!confirm(`Tem certeza que deseja ${action} este cartão?`)) {
-      return;
+    if (!csrfToken) {
+      const csrfResponse = await fetch('/csrf-token');
+      const csrfData = await csrfResponse.json();
+      csrfToken = csrfData.token;
     }
 
-    router.patch(`/client/cards/${card.id}/toggle-status`, {}, {
-      onSuccess: () => {
-        // Update local state
-        setCards(cards => cards.map(c => 
-          c.id === card.id ? { ...c, status: newStatus } : c
-        ));
-        alert(`Cartão ${newStatus === 'activated' ? 'ativado' : 'desativado'} com sucesso!`);
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
       },
-      onError: (errors) => {
-        console.error('Toggle status error:', errors);
-        alert('Erro ao alterar status do cartão. Tente novamente.');
+      body: JSON.stringify(data)
+    });
+
+    if (response.ok) {
+      return { success: true };
+    } else {
+      const errorData = await response.json();
+      return { success: false, errors: errorData.errors || {}, message: errorData.message };
+    }
+  } catch (error) {
+    return { success: false, errors: { general: error.message } };
+  }
+};
+
+const ClientDashboard = ({ user, userCards, stats }) => {
+  const [darkMode, setDarkMode] = useState(false);
+  const [showCardMenu, setShowCardMenu] = useState(null);
+  const [cards, setCards] = useState(userCards || []);
+  const [alert, setAlert] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, cardId: null, cardName: '' });
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  console.log('=== DASHBOARD PROPS DEBUG ===');
+  console.log('user:', user);
+  console.log('userCards:', userCards);
+  console.log('stats:', stats);
+  console.log('============================');
+
+  const showAlert = (message, type = 'default', duration = 5000) => {
+    setAlert({ message, type });
+    if (duration > 0) {
+      setTimeout(() => setAlert(null), duration);
+    }
+  };
+
+  const handleDeleteCard = async (cardId) => {
+    if (isDeleting) return;
+
+    setIsDeleting(true);
+    setConfirmModal({ isOpen: false, cardId: null, cardName: '' });
+
+    try {
+      console.log('Deleting card ID:', cardId);
+      
+      const result = await submitForm(`/client/cards/${cardId}`, {}, 'DELETE');
+      
+      if (result.success) {
+        // Remove card from local state
+        setCards(prevCards => prevCards.filter(card => card.id !== cardId));
+        showAlert('✅ Cartão excluído com sucesso!', 'success');
+        console.log('Card deleted successfully');
+      } else {
+        console.error('Delete failed:', result);
+        showAlert('❌ Erro ao excluir cartão. Tente novamente.', 'destructive');
       }
+    } catch (error) {
+      console.error('Delete error:', error);
+      showAlert('❌ Erro interno. Tente novamente.', 'destructive');
+    } finally {
+      setIsDeleting(false);
+      setShowCardMenu(null);
+    }
+  };
+
+  const confirmDelete = (card) => {
+    setConfirmModal({
+      isOpen: true,
+      cardId: card.id,
+      cardName: card.name
     });
     setShowCardMenu(null);
   };
 
-  const handleLogout = () => {
-    router.post('/logout');
+  const handleEditCard = (card) => {
+    console.log('Editing card:', card);
+    
+    // Navigate to edit page with prefilled data
+    const editUrl = `/client/cards/${card.id}/edit`;
+    navigateToRoute(editUrl);
+  };
+
+  const handleViewCard = (card) => {
+    const cardUrl = card.cardUrl || card.card_url || `/c/${card.code}`;
+    window.open(cardUrl, '_blank');
+  };
+
+  const handleShareCard = async (card) => {
+    const cardUrl = card.cardUrl || card.card_url || `/c/${card.code}`;
+    
+    try {
+      await navigator.clipboard.writeText(cardUrl);
+      showAlert('✅ Link copiado para a área de transferência!', 'success');
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      showAlert(`📋 Link do cartão: ${cardUrl}`, 'default', 0);
+    }
+    setShowCardMenu(null);
+  };
+
+  const handleDownloadQR = (card) => {
+    const qrUrl = card.qrUrl || `/cards/${card.id}/qr`;
+    window.open(qrUrl, '_blank');
+    setShowCardMenu(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await submitForm('/logout', {}, 'POST');
+      navigateToRoute('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      navigateToRoute('/login'); // Fallback
+    }
   };
 
   const handleGoBack = () => {
-    router.visit('/');
+    navigateToRoute('/');
   };
 
   const toggleTheme = () => {
@@ -245,24 +257,30 @@ const ClientDashboard: React.FC = () => {
     document.documentElement.classList.toggle('dark');
   };
 
-  const getThemeGradient = (theme: string) => {
-    const themes: Record<string, string> = {
-      'gradient-purple': 'from-purple-600 to-blue-600',
-      'gradient-blue': 'from-blue-600 to-cyan-600', 
-      'gradient-green': 'from-green-600 to-emerald-600',
-      'gradient-red': 'from-red-600 to-pink-600',
-      'gradient-orange': 'from-orange-600 to-amber-600'
+  const getThemeGradient = (theme) => {
+    const themes = {
+      'blue': 'from-blue-500 to-blue-600',
+      'green': 'from-emerald-500 to-green-600',
+      'purple': 'from-purple-500 to-violet-600',
+      'pink': 'from-pink-500 to-rose-600',
+      'orange': 'from-orange-500 to-amber-600',
+      'dark': 'from-gray-800 to-slate-800',
+      'gradient-blue': 'from-blue-500 to-blue-600',
+      'gradient-green': 'from-emerald-500 to-green-600',
+      'gradient-purple': 'from-purple-500 to-violet-600',
+      'gradient-pink': 'from-pink-500 to-rose-600',
+      'gradient-orange': 'from-orange-500 to-amber-600'
     };
-    return themes[theme] || themes['gradient-purple'];
+    return themes[theme] || themes['blue'];
   };
 
-  const formatWebsiteUrl = (website?: string) => {
+  const formatWebsiteUrl = (website) => {
     if (!website) return '';
     if (website.startsWith('http')) return website;
     return website.replace(/^(https?:\/\/)/, '');
   };
 
-  // Handle clicks outside of menu to close it
+  // Close menu when clicking outside
   React.useEffect(() => {
     const handleClickOutside = () => setShowCardMenu(null);
     document.addEventListener('click', handleClickOutside);
@@ -271,26 +289,47 @@ const ClientDashboard: React.FC = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark' : ''}`}>
-      <Head title="Minha Conta - Capinha Digital" />
-      
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+
+        {/* Alert */}
+        {alert && (
+          <div className="fixed top-4 right-4 z-50 max-w-md">
+            <Alert 
+              variant={alert.type} 
+              onClose={() => setAlert(null)}
+            >
+              <AlertDescription>{alert.message}</AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal({ isOpen: false, cardId: null, cardName: '' })}
+          onConfirm={() => handleDeleteCard(confirmModal.cardId)}
+          title="Excluir Cartão"
+          description={`Tem certeza que deseja excluir o cartão "${confirmModal.cardName}"? Esta ação não pode ser desfeita.`}
+          confirmText={isDeleting ? "Excluindo..." : "Excluir"}
+          confirmVariant="destructive"
+        />
 
         {/* Header */}
-        <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               {/* Left: Back button and title */}
               <div className="flex items-center space-x-4">
                 <button
                   onClick={handleGoBack}
-                  className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-purple-600 transition-colors rounded-lg hover:bg-gray-100"
                 >
                   <ArrowLeft className="w-5 h-5" />
                   <span className="hidden sm:inline">Voltar</span>
                 </button>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">Minha Conta</h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Gerencie seus cartões digitais</p>
+                  <h1 className="text-xl font-bold text-gray-900">Minha Conta</h1>
+                  <p className="text-sm text-gray-500">Gerencie seus cartões digitais</p>
                 </div>
               </div>
 
@@ -298,14 +337,14 @@ const ClientDashboard: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={toggleTheme}
-                  className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
                 >
                   {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="hidden sm:inline">Sair</span>
@@ -318,30 +357,30 @@ const ClientDashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {/* User Info Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 mb-8">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
                   <User className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{user.name || 'Usuário'}</h2>
-                  <p className="text-gray-600 dark:text-gray-300">{user.email || 'email@exemplo.com'}</p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    {user.phone && (
+                  <h2 className="text-2xl font-bold text-gray-900">{user?.name || 'Usuário'}</h2>
+                  <p className="text-gray-600">{user?.email || 'email@exemplo.com'}</p>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                    {user?.phone && (
                       <span className="flex items-center gap-1">
                         <Phone className="w-4 h-4" />
                         {user.phone}
                       </span>
                     )}
-                    <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-xs font-medium">
-                      Plano {user.plan || 'Free'}
+                    <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded-full text-xs font-medium">
+                      Plano {user?.plan || 'Free'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
                 <Settings className="w-5 h-5" />
               </button>
             </div>
@@ -349,21 +388,21 @@ const ClientDashboard: React.FC = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalCards}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Cartões</div>
+            <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="text-2xl font-bold text-gray-900">{stats?.totalCards || cards.length}</div>
+              <div className="text-sm text-gray-500">Cartões</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalViews}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Visualizações</div>
+            <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="text-2xl font-bold text-gray-900">{stats?.totalViews || cards.reduce((sum, card) => sum + (card.views || card.click_count || 0), 0)}</div>
+              <div className="text-sm text-gray-500">Visualizações</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalDownloads}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Downloads</div>
+            <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="text-2xl font-bold text-gray-900">{stats?.totalDownloads || 0}</div>
+              <div className="text-sm text-gray-500">Downloads</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.activeCards}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Ativos</div>
+            <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="text-2xl font-bold text-gray-900">{stats?.activeCards || cards.filter(card => card.status === 'activated').length}</div>
+              <div className="text-sm text-gray-500">Ativos</div>
             </div>
           </div>
 
@@ -371,30 +410,51 @@ const ClientDashboard: React.FC = () => {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Meus Cartões</h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <h3 className="text-2xl font-bold text-gray-900">Meus Cartões</h3>
+                <p className="text-gray-600">
                   {cards.length} {cards.length === 1 ? 'cartão criado' : 'cartões criados'}
                 </p>
               </div>
 
-              <button onClick={() => router.visit('/create-card')} className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+              <Button 
+                onClick={() => navigateToRoute('/create-card')} 
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 flex items-center gap-2"
+              >
                 <Plus className="w-5 h-5" />
                 <span>Criar Cartão</span>
-              </button>
+              </Button>
             </div>
 
             {/* Cards Grid */}
             {cards.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {cards.map((card) => (
-                  <div key={card.id} className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  <div key={card.id} className="group relative bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
 
                     {/* Card Preview */}
-                    <div className={`h-32 bg-gradient-to-r ${getThemeGradient(card.theme)} p-4 relative`}>
-                      <div className="text-white">
-                        <h4 className="text-lg font-bold">{card.name}</h4>
-                        {card.title && <p className="text-sm opacity-90">{card.title}</p>}
-                        {card.company && <p className="text-xs opacity-75">{card.company}</p>}
+                    <div className={`h-32 bg-gradient-to-r ${getThemeGradient(card.color_theme || card.theme)} p-4 relative`}>
+                      <div className="flex items-start gap-3">
+                        {/* Profile Avatar Only */}
+                        <div className="flex-shrink-0">
+                          {card.profile_picture ? (
+                            <img 
+                              src={card.profile_picture} 
+                              alt={card.name}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-white/30"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30">
+                              <User className="w-6 h-6 text-white/80" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Card Info */}
+                        <div className="text-white flex-1 min-w-0">
+                          <h4 className="text-lg font-bold truncate">{card.name}</h4>
+                          {card.job_title && <p className="text-sm opacity-90 truncate">{card.job_title}</p>}
+                          {card.company && <p className="text-xs opacity-75 truncate">{card.company}</p>}
+                        </div>
                       </div>
 
                       {/* Premium Badge */}
@@ -430,59 +490,43 @@ const ClientDashboard: React.FC = () => {
                         </button>
 
                         {showCardMenu === card.id && (
-                          <div 
-                            className="absolute right-0 top-8 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-10"
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
                             <button 
                               onClick={() => handleViewCard(card)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             >
                               <ExternalLink className="w-4 h-4" />
                               Visualizar
                             </button>
                             <button 
                               onClick={() => handleEditCard(card)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             >
                               <Edit3 className="w-4 h-4" />
                               Editar
                             </button>
                             <button 
-                              onClick={() => handleDuplicateCard(card)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => handleShareCard(card)}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             >
                               <Copy className="w-4 h-4" />
-                              Duplicar
-                            </button>
-                            <button 
-                              onClick={() => handleShareCard(card)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              <Share2 className="w-4 h-4" />
-                              Compartilhar
+                              Copiar Link
                             </button>
                             <button 
                               onClick={() => handleDownloadQR(card)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             >
                               <QrCode className="w-4 h-4" />
                               QR Code
                             </button>
-                            <button 
-                              onClick={() => handleToggleStatus(card)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              {card.status === 'activated' ? 'Desativar' : 'Ativar'}
-                            </button>
-                            <hr className="my-1 border-gray-200 dark:border-gray-600" />
+                            <hr className="my-1 border-gray-200" />
                             <button
-                              onClick={() => handleDeleteCard(card.id)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              onClick={() => confirmDelete(card)}
+                              disabled={isDeleting}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                             >
                               <Trash2 className="w-4 h-4" />
-                              Excluir
+                              {isDeleting ? 'Excluindo...' : 'Excluir'}
                             </button>
                           </div>
                         )}
@@ -493,25 +537,25 @@ const ClientDashboard: React.FC = () => {
                     <div className="p-4">
                       <div className="space-y-2 mb-4">
                         {card.email && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Mail className="w-4 h-4" />
                             <span className="truncate">{card.email}</span>
                           </div>
                         )}
-                        {card.phone && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        {(card.phone || card.whatsapp) && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Phone className="w-4 h-4" />
-                            {card.phone}
+                            {card.phone || card.whatsapp}
                           </div>
                         )}
                         {card.website && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Globe className="w-4 h-4" />
                             <span className="truncate">{formatWebsiteUrl(card.website)}</span>
                           </div>
                         )}
                         {card.location && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
                             <MapPin className="w-4 h-4" />
                             {card.location}
                           </div>
@@ -519,11 +563,11 @@ const ClientDashboard: React.FC = () => {
                       </div>
 
                       {/* Stats */}
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-600">
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Eye className="w-3 h-3" />
-                            {card.views || 0}
+                            {card.views || card.click_count || 0}
                           </span>
                           <span className="flex items-center gap-1">
                             <Download className="w-3 h-3" />
@@ -531,7 +575,7 @@ const ClientDashboard: React.FC = () => {
                           </span>
                         </div>
                         <div className="text-xs text-gray-400">
-                          {card.createdAtFormatted}
+                          {card.createdAtFormatted || new Date(card.created_at).toLocaleDateString('pt-BR')}
                         </div>
                       </div>
                     </div>
@@ -541,22 +585,22 @@ const ClientDashboard: React.FC = () => {
             ) : (
               /* Empty State */
               <div className="text-center py-12">
-                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CreditCard className="w-12 h-12 text-gray-400" />
                 </div>
-                <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                <h4 className="text-xl font-semibold text-gray-900 mb-2">
                   Nenhum cartão criado ainda
                 </h4>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <p className="text-gray-600 mb-6">
                   Crie seu primeiro cartão digital e comece a compartilhar suas informações profissionais
                 </p>
-                <button 
-                  onClick={() => router.visit('/create-card')}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl mx-auto"
+                <Button 
+                  onClick={() => navigateToRoute('/create-card')}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 flex items-center gap-2 mx-auto"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Criar Primeiro Cartão</span>
-                </button>
+                </Button>
               </div>
             )}
           </div>

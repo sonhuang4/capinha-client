@@ -36,6 +36,7 @@ class Card extends Model
         'twitter',
         'facebook',
         'analytics_data',
+        'request_id', // ADD THIS FIELD - it's missing!
     ];
 
     protected $casts = [
@@ -52,6 +53,12 @@ class Card extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // ADD THIS MISSING RELATIONSHIP
+    public function cardRequest()
+    {
+        return $this->belongsTo(\App\Models\CardRequest::class, 'request_id');
     }
 
     // NEW RELATIONSHIP - Link to activation code
@@ -182,19 +189,19 @@ class Card extends Model
     }
 
     public function getDisplayNameAttribute()
-{
-    if ($this->job_title && $this->company) {
-        return $this->name . ' - ' . $this->job_title . ' at ' . $this->company;
-    } elseif ($this->job_title) {
-        return $this->name . ' - ' . $this->job_title;
+    {
+        if ($this->job_title && $this->company) {
+            return $this->name . ' - ' . $this->job_title . ' at ' . $this->company;
+        } elseif ($this->job_title) {
+            return $this->name . ' - ' . $this->job_title;
+        }
+        
+        return $this->name;
     }
-    
-    return $this->name;
-}
 
-/**
- * Get primary contact method
- */
+    /**
+     * Get primary contact method
+     */
     public function getPrimaryContactAttribute()
     {
         return $this->email ?: $this->whatsapp ?: $this->phone ?: 'Não informado';

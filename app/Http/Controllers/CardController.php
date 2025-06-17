@@ -894,11 +894,16 @@ class CardController extends Controller
      */
     private function getRecentOrders($limit = 10)
     {
-        return Card::with(['cardRequest'])
-            ->orderByDesc('created_at')
+        return Card::orderByDesc('created_at')
             ->limit($limit)
             ->get()
             ->map(function ($card) {
+                // Get card request data manually if needed
+                $cardRequest = null;
+                if (!empty($card->request_id)) {
+                    $cardRequest = \App\Models\CardRequest::find($card->request_id);
+                }
+                
                 return [
                     'id' => $card->id,
                     'order_id' => '#ORD-' . str_pad($card->id, 6, '0', STR_PAD_LEFT),
@@ -913,6 +918,13 @@ class CardController extends Controller
                     'activation_code' => $card->activation_code,
                     'card_url' => config('app.frontend_url', 'http://localhost:8000') . '/c/' . $card->code,
                     'is_from_request' => !empty($card->request_id),
+                    // Add request data if available
+                    'request_notes' => $cardRequest ? $cardRequest->notes : null,
+                    'original_request' => $cardRequest ? [
+                        'id' => $cardRequest->id,
+                        'status' => $cardRequest->status,
+                        'processed_at' => $cardRequest->processed_at,
+                    ] : null,
                 ];
             });
     }
@@ -1408,14 +1420,14 @@ class CardController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Order analytics error: ' . $e->getMessage());
-            
-            return response()->json([
-                'revenue_by_type' => [],
-                'monthly_revenue' => [],
-                'total_revenue' => 0,
-                'average_order_value' => 0,
-            ]);
-        }
+        \Log::error('Order analytics error: ' . $e->getMessage());
+        
+        return response()->json([
+            'revenue_by_type' => [],
+            'monthly_revenue' => [],
+            'total_revenue' => 0,
+            'average_order_value' => 0,
+        ]);
+    }
     }
 }

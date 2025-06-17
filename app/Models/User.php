@@ -63,6 +63,6 @@ class User extends Authenticatable
     // Relationship with cards (for future)
     public function cards()
     {
-        return $this->hasMany(Card::class);
+        return $this->hasMany(\App\Models\Card::class, 'user_id');
     }
 }
