@@ -49,7 +49,7 @@ return new class extends Migration
                 'bio',
                 'linkedin',
                 'twitter',
-                'facebook',
+                'facebook',     
                 'analytics_data'
             ]);
         });
