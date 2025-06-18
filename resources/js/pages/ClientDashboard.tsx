@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
 import {
   ArrowLeft,
   Plus,
@@ -239,13 +240,7 @@ const ClientDashboard = ({ user, userCards, stats }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await submitForm('/logout', {}, 'POST');
-      navigateToRoute('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      navigateToRoute('/login'); // Fallback
-    }
+    router.post(route('logout'));
   };
 
   const handleGoBack = () => {

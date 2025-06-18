@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class SettingsController extends Controller
 {
@@ -16,7 +17,15 @@ class SettingsController extends Controller
     {
         $settings = $this->getSettings();
         
-        return response()->json($settings);
+        // For web requests - return page
+        if (request()->expectsJson()) {
+            return response()->json($settings);
+        }
+        
+        // For browser requests - return Inertia page
+        return Inertia::render('AdminSettings', [
+            'settings' => $settings
+        ]);
     }
 
     /**

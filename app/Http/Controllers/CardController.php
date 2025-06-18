@@ -825,7 +825,7 @@ class CardController extends Controller
         $recentOrders = $this->getRecentOrders();
         $alerts = $this->getAdminAlerts();
 
-        return Inertia::render('AdminDashboard', [
+        return Inertia::render('dashboard', [
             'stats' => $stats,
             'recent_orders' => $recentOrders,
             'alerts' => $alerts

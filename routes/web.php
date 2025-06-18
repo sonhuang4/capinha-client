@@ -123,6 +123,11 @@ Route::middleware('auth')->group(function () {
         
         // Admin Dashboard
         Route::get('/dashboard', [CardController::class, 'adminDashboard'])->name('dashboard');
+        Route::get('/admin/analytics', function() {
+            return inertia('AdminAnalytics');
+        })->name('admin.analytics');
+
+        Route::get('/analytics/data', [CardController::class, 'analytics'])->name('analytics.data');
         
         // Card Management (Admin)
         Route::prefix('cards')->name('cards.')->group(function () {
@@ -138,7 +143,7 @@ Route::middleware('auth')->group(function () {
         // Analytics
         Route::prefix('analytics')->name('analytics.')->group(function () {
             Route::get('/', [CardController::class, 'analyticsIndex'])->name('index');
-            Route::get('/data', [CardController::class, 'analyticsData'])->name('data');
+            // Route::get('/data', [CardController::class, 'analyticsData'])->name('data');
             Route::get('/orders', [CardController::class, 'orderAnalytics'])->name('orders');
         });
         

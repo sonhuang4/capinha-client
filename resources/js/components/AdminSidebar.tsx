@@ -19,7 +19,7 @@ import { Link, usePage } from '@inertiajs/react';
 const items = [
   { title: 'Cartões', url: '/dashboard', icon: CreditCard },
   { title: 'Solicitações', url: '/admin/requests', icon: CreditCard }, 
-  { title: 'Análise', url: '/analytics', icon: BarChart3 },
+  { title: 'Análise', url: '/admin/analytics', icon: BarChart3 },
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 

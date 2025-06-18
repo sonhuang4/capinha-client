@@ -197,7 +197,7 @@ const DigitalCardLanding = () => {
 
               {/* Mobile Login Button */}
               <button
-                onClick={() => router.visit('/login')}
+                onClick={() => router.visit('/auth/redirect')}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg w-full justify-center"
               >
                 <User className="w-4 h-4" />
