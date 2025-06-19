@@ -1373,6 +1373,57 @@ class CardController extends Controller
         );
     }
 
+    public function showActivations(Card $card)
+    {
+        // Load the card with its activations
+        $card->load(['activations' => function($query) {
+            $query->orderBy('created_at', 'desc');
+        }]);
+
+        return Inertia::render('Admin/Users/CardActivations', [
+            'card' => [
+                'id' => $card->id,
+                'name' => $card->name,
+                'activations' => $card->activations->map(function($activation) {
+                    return [
+                        'id' => $activation->id,
+                        'ip_address' => $activation->ip_address,
+                        'user_agent' => $activation->user_agent,
+                        'created_at' => $activation->created_at->format('Y-m-d H:i:s'),
+                        'location' => $activation->location,
+                    ];
+                })
+            ]
+        ]);
+    }
+
+    public function exportActivations(Card $card)
+    {
+        $activations = $card->activations()->orderBy('created_at', 'desc')->get();
+        
+        $csvData = [];
+        $csvData[] = ['Data', 'IP', 'User Agent', 'Location']; // Header
+        
+        foreach ($activations as $activation) {
+            $csvData[] = [
+                $activation->created_at->format('Y-m-d H:i:s'),
+                $activation->ip_address,
+                $activation->user_agent,
+                $activation->location ?? 'N/A'
+            ];
+        }
+        
+        $filename = "activations_{$card->name}_{now()->format('Y-m-d')}.csv";
+        
+        return response()->streamDownload(function() use ($csvData) {
+            $handle = fopen('php://output', 'w');
+            foreach ($csvData as $row) {
+                fputcsv($handle, $row);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     /**
      * Get order analytics
      */
@@ -1430,4 +1481,6 @@ class CardController extends Controller
         ]);
     }
     }
+
+    
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { router } from '@inertiajs/react';
-import { CreditCard, BarChart3, Settings, LogOut } from 'lucide-react';
+import { CreditCard, BarChart3, Settings, LogOut,Users } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -17,8 +17,14 @@ import { Button } from '@/components/ui/button';
 import { Link, usePage } from '@inertiajs/react';
 
 const items = [
+  {
+    title: "Users",
+    url: "/admin/users",
+    icon: Users,
+    badge: "New" // optional
+  },
   { title: 'Cartões', url: '/dashboard', icon: CreditCard },
-  { title: 'Solicitações', url: '/admin/requests', icon: CreditCard }, 
+  { title: 'Solicitações', url: '/admin/requests', icon: CreditCard },
   { title: 'Análise', url: '/admin/analytics', icon: BarChart3 },
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];

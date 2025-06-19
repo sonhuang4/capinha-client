@@ -9,40 +9,14 @@ use App\Http\Controllers\{
     CardRequestController,
     PaymentController,
     HomeController,
-    UploadController
+    UploadController,
 };
-// use App\Http\Middleware\{AdminMiddleware}
 
 /*
 |--------------------------------------------------------------------------
 | Public Routes
 |--------------------------------------------------------------------------
 */
-
-    Route::middleware('auth')->group(function () {
-        
-        // ... your existing routes ...
-        
-        // Add QR Code routes
-        Route::get('/card/{slug}/qr', [CardController::class, 'qr'])->name('card.qr');
-        Route::get('/cards/{id}/qr', [CardController::class, 'qr'])->name('cards.qr');
-        
-        // QR download route
-        Route::get('/card/{slug}/qr/download', function($slug) {
-            $card = \App\Models\Card::where('unique_slug', $slug)->firstOrFail();
-            $cardUrl = route('card.public', $slug);
-            
-            return response()->json([
-                'success' => true,
-                'qr_data' => $cardUrl,
-                'card_name' => $card->name,
-                'download_url' => $cardUrl,
-                'message' => 'QR code data for: ' . $card->name
-            ]);
-        })->name('card.qr.download');
-        
-    });
-
 
 // Landing Page
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -83,6 +57,24 @@ Route::middleware('auth')->group(function () {
     // Auth Redirect
     Route::get('/auth/redirect', [ClientController::class, 'authRedirect'])->name('auth.redirect');
     
+    // QR Code routes (available to all authenticated users)
+    Route::get('/card/{slug}/qr', [CardController::class, 'qr'])->name('card.qr');
+    Route::get('/cards/{id}/qr', [CardController::class, 'qr'])->name('cards.qr');
+    
+    // QR download route
+    Route::get('/card/{slug}/qr/download', function($slug) {
+        $card = \App\Models\Card::where('unique_slug', $slug)->firstOrFail();
+        $cardUrl = route('card.public', $slug);
+        
+        return response()->json([
+            'success' => true,
+            'qr_data' => $cardUrl,
+            'card_name' => $card->name,
+            'download_url' => $cardUrl,
+            'message' => 'QR code data for: ' . $card->name
+        ]);
+    })->name('card.qr.download');
+    
     /*
     |--------------------------------------------------------------------------
     | Client Routes (Regular Users)
@@ -106,7 +98,7 @@ Route::middleware('auth')->group(function () {
         
     });
     
-    // Card Creation
+    // Card Creation (available to all authenticated users)
     Route::get('/create-card', [CardController::class, 'create'])->name('card.create');
     Route::post('/cards/create-client', [CardController::class, 'storeClient'])->name('card.store-client');
     
@@ -118,7 +110,7 @@ Route::middleware('auth')->group(function () {
     | Admin Routes (Verified Admins Only)
     |--------------------------------------------------------------------------
     */
-    
+
     Route::middleware(['verified'])->group(function () {
         
         // Admin Dashboard
@@ -143,7 +135,6 @@ Route::middleware('auth')->group(function () {
         // Analytics
         Route::prefix('analytics')->name('analytics.')->group(function () {
             Route::get('/', [CardController::class, 'analyticsIndex'])->name('index');
-            // Route::get('/data', [CardController::class, 'analyticsData'])->name('data');
             Route::get('/orders', [CardController::class, 'orderAnalytics'])->name('orders');
         });
         
@@ -152,6 +143,26 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [SettingsController::class, 'index'])->name('index');
             Route::post('/save', [SettingsController::class, 'save'])->name('save');
             Route::post('/reset', [SettingsController::class, 'reset'])->name('reset');
+        });
+        
+        // User Management (Admin)
+        Route::prefix('admin/users')->name('admin.users.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('index');
+            Route::get('/{user}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('show');
+            Route::patch('/{user}/status', [\App\Http\Controllers\Admin\UserController::class, 'updateStatus'])->name('update-status');
+            Route::patch('/{user}/role', [\App\Http\Controllers\Admin\UserController::class, 'updateRole'])->name('update-role');
+            Route::delete('/{user}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-action', [\App\Http\Controllers\Admin\UserController::class, 'bulkAction'])->name('bulk-action');
+            Route::get('/export/csv', [\App\Http\Controllers\Admin\UserController::class, 'export'])->name('export');
+        });
+        
+        // Card Activations (Admin) - FIXED
+        Route::prefix('admin/cards')->name('admin.cards.')->group(function () {
+            Route::get('/{card}/activations', [CardController::class, 'showActivations'])
+                ->name('activations');
+            
+            Route::get('/{card}/activations/export', [CardController::class, 'exportActivations'])
+                ->name('activations.export');
         });
         
         // Request Management

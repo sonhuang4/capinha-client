@@ -336,31 +336,31 @@ const AdminDashboard = () => {
 
                         {/* Create Button */}
                         {/* <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                            <DialogTrigger asChild> */}
-                                <Button
-                                    className="w-full sm:w-auto gradient-button"
-                                    onClick={() => router.visit('/cards/create')}
-                                >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    <span className="sm:inline">Criar cartão</span>
-                                </Button>
-                            {/* </DialogTrigger>
-                            <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
-                                <DialogHeader>
-                                    <DialogTitle>
-                                        {selectedCard ? 'Edit Business Card' : 'Create New Business Card'}
-                                    </DialogTitle>
-                                </DialogHeader>
-                                <CardForm
-                                    card={selectedCard}
-                                    onSave={handleSaveCard}
-                                    onCancel={() => {
-                                        setIsFormOpen(false);
-                                        setSelectedCard(null);
-                                    }}
-                                />
-                            </DialogContent>
-                        </Dialog> */}
+                                <DialogTrigger asChild> */}
+                        <Button
+                            className="w-full sm:w-auto gradient-button"
+                            onClick={() => router.visit('/client/dashboard')}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            <span className="sm:inline">Criar cartão</span>
+                        </Button>
+                        {/* </DialogTrigger>
+                                <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            {selectedCard ? 'Edit Business Card' : 'Create New Business Card'}
+                                        </DialogTitle>
+                                    </DialogHeader>
+                                    <CardForm
+                                        card={selectedCard}
+                                        onSave={handleSaveCard}
+                                        onCancel={() => {
+                                            setIsFormOpen(false);
+                                            setSelectedCard(null);
+                                        }}
+                                    />
+                                </DialogContent>
+                            </Dialog> */}
                     </div>
 
                     {/* Search and Filter Section */}
@@ -523,12 +523,14 @@ const AdminDashboard = () => {
                                                         )}
                                                     </button>
                                                 </div>
-                                                <a href={`/cards/${card.id}/activations`} className="text-sm text-blue-600 hover:underline">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => router.visit(`/admin/cards/${card.id}/activations`)}
+                                                    className="text-sm text-blue-600 hover:text-blue-800 p-0 h-auto font-normal justify-start"
+                                                >
                                                     📊 Ver Ativações
-                                                </a>
-                                                <a href={`/cards/${card.id}/qr`} className="text-xs text-blue-500 hover:underline">
-                                                    📷 Ver QR Code
-                                                </a>
+                                                </Button>
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => shareOnWhatsApp(card)}
