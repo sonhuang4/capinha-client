@@ -22,6 +22,7 @@ import {
   CheckCircle,
   ShieldCheck
 } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
 
 // Basic UI Components
 const Input = ({ className = '', ...props }) => (
@@ -37,28 +38,28 @@ const Label = ({ className = '', children, ...props }) => (
   </label>
 );
 
-const Button = ({ 
-  variant = 'default', 
-  size = 'default', 
-  className = '', 
+const Button = ({
+  variant = 'default',
+  size = 'default',
+  className = '',
   disabled = false,
-  children, 
-  ...props 
+  children,
+  ...props
 }) => {
   const baseClass = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
-  
+
   const variants = {
     default: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
     outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500",
     destructive: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
   };
-  
+
   const sizes = {
     sm: "px-3 py-1.5 text-sm",
     default: "px-4 py-2",
     lg: "px-6 py-3 text-lg"
   };
-  
+
   return (
     <button
       className={`${baseClass} ${variants[variant]} ${sizes[size]} ${className}`}
@@ -81,7 +82,7 @@ const Alert = ({ variant = 'default', className = '', children, ...props }) => {
     default: "bg-blue-50 border-blue-200 text-blue-800",
     destructive: "bg-red-50 border-red-200 text-red-800"
   };
-  
+
   return (
     <div className={`p-4 rounded-md border ${variants[variant]} ${className}`} {...props}>
       {children}
@@ -113,9 +114,9 @@ const BusinessCardDisplay = ({ card, preview = false }) => {
       <div className={`bg-gradient-to-br ${gradientClass} rounded-xl p-6 text-white shadow-xl`}>
         <div className="flex items-start gap-4">
           {card.profile_picture ? (
-            <img 
-              src={card.profile_picture} 
-              alt={card.name} 
+            <img
+              src={card.profile_picture}
+              alt={card.name}
               className="w-16 h-16 rounded-full object-cover border-2 border-white/20"
             />
           ) : (
@@ -123,7 +124,7 @@ const BusinessCardDisplay = ({ card, preview = false }) => {
               <User className="w-8 h-8 text-white/80" />
             </div>
           )}
-          
+
           <div className="flex-1 min-w-0">
             <h3 className="text-xl font-bold truncate">{card.name || 'Seu Nome'}</h3>
             {card.job_title && (
@@ -133,16 +134,16 @@ const BusinessCardDisplay = ({ card, preview = false }) => {
               <p className="text-white/80 text-xs">{card.company}</p>
             )}
           </div>
-          
+
           {card.logo && (
-            <img 
-              src={card.logo} 
-              alt="Logo" 
+            <img
+              src={card.logo}
+              alt="Logo"
               className="w-12 h-12 rounded object-contain bg-white/10 p-1"
             />
           )}
         </div>
-        
+
         <div className="mt-4 space-y-2">
           {card.email && (
             <div className="flex items-center gap-2 text-sm">
@@ -169,7 +170,7 @@ const BusinessCardDisplay = ({ card, preview = false }) => {
             </div>
           )}
         </div>
-        
+
         {(card.instagram || card.linkedin || card.twitter) && (
           <div className="mt-3 flex gap-3">
             {card.instagram && <Instagram className="w-4 h-4" />}
@@ -191,7 +192,7 @@ const submitForm = async (url, data, method = 'POST') => {
   try {
     // Get CSRF token
     let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
+
     if (!csrfToken) {
       const csrfResponse = await fetch('/csrf-token');
       const csrfData = await csrfResponse.json();
@@ -481,6 +482,7 @@ const ClientCardCreator = ({
 
     if (isSubmitting) return;
 
+    // ✅ STEP 1: CLIENT-SIDE VALIDATION
     const finalErrors = {};
 
     if (!form.name.trim()) {
@@ -508,11 +510,13 @@ const ClientCardCreator = ({
     setIsSubmitting(true);
     setGeneralError('');
 
+    // ✅ STEP 2: PREPARE SUBMIT DATA
     const submitData = {
       ...form,
       activation_code: (!edit_mode && is_purchase_flow) ? (activation_code || form.activation_code || null) : undefined
     };
 
+    // Remove undefined values
     Object.keys(submitData).forEach(key => {
       if (submitData[key] === undefined) {
         delete submitData[key];
@@ -524,11 +528,12 @@ const ClientCardCreator = ({
     console.log('Data:', submitData);
 
     if (edit_mode && card_id) {
+      // ✅ EDIT MODE - Keep existing logic
       const result = await submitForm(`/client/cards/${card_id}`, submitData, 'PUT');
-      
+
       if (result.success) {
         showAlert('✅ Cartão atualizado com sucesso!', 'success');
-        navigateToRoute('/client/dashboard');
+        router.visit('/client/dashboard');
       } else {
         console.error('Update errors:', result.errors);
         setErrors(result.errors);
@@ -543,31 +548,156 @@ const ClientCardCreator = ({
         setGeneralError(errorMessage);
       }
     } else {
-      const result = await submitForm('/cards/create-client', submitData, 'POST');
-      
-      if (result.success) {
-        showAlert('✅ Cartão criado com sucesso!', 'success');
-        setSuccessMessage('✅ Cartão criado com sucesso!');
-        navigateToRoute('/client/dashboard');
-      } else {
-        console.error('Create errors:', result.errors);
-        setErrors(result.errors);
+      // ✅ CREATE MODE - COMPLETE IMPLEMENTATION
+      try {
+        // ✅ STEP 3: GET CSRF TOKEN
+        let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-        let errorMessage = '❌ Erro ao criar cartão.';
-        if (result.errors.activation_code) {
-          errorMessage = '❌ ' + (Array.isArray(result.errors.activation_code) ? result.errors.activation_code[0] : result.errors.activation_code);
-        } else if (result.errors.general) {
-          errorMessage = '❌ ' + (Array.isArray(result.errors.general) ? result.errors.general[0] : result.errors.general);
-        } else if (result.errors.contact) {
-          errorMessage = '❌ ' + (Array.isArray(result.errors.contact) ? result.errors.contact[0] : result.errors.contact);
+        if (!csrfToken) {
+          const csrfResponse = await fetch('/csrf-token');
+          const csrfData = await csrfResponse.json();
+          csrfToken = csrfData.token;
         }
 
-        setGeneralError(errorMessage);
+        // ✅ STEP 4: MAKE API CALL
+        const response = await fetch('/cards/create-client', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(submitData)
+        });
+
+        if (response.ok) {
+          // ✅ STEP 5: SUCCESS - PARSE AND HANDLE RESPONSE
+          const result = await response.json();
+          console.log("SUCCESS! Full backend response:", result);
+
+          // ✅ DESTRUCTURE THE BACKEND DATA
+          const {
+            success,
+            message,
+            card,
+            payment,
+            redirect_url,
+            dashboard_url
+          } = result;
+
+          // ✅ LOG RECEIVED DATA FOR DEBUGGING
+          console.log("Received card data:", {
+            cardId: card?.id,
+            cardCode: card?.code,
+            cardSlug: card?.unique_slug,
+            cardName: card?.name,
+            publicUrl: card?.public_url,
+            shortUrl: card?.short_url,
+            paymentPlan: payment?.plan,
+            redirectUrl: redirect_url
+          });
+
+          // ✅ UPDATE COMPONENT STATE
+          setSuccessMessage(message || '✅ Cartão criado com sucesso!');
+
+          // ✅ OPTIONAL: Store created card info for display
+          if (card) {
+            setForm(prev => ({
+              ...prev,
+              created_card_id: card.id,
+              created_card_code: card.code,
+              created_card_slug: card.unique_slug
+            }));
+          }
+
+          // ✅ STEP 6: NAVIGATE TO SUCCESS PAGE
+          // Priority order: redirect_url > unique_slug > dashboard
+          if (redirect_url) {
+            console.log("Redirecting to:", redirect_url);
+            window.location.href = redirect_url;
+          } else if (card && card.unique_slug) {
+            console.log("Using Inertia router to:", `/card-success/${card.unique_slug}`);
+            router.visit(`/card-success/${card.unique_slug}`, {
+              replace: true
+            });
+          } else if (dashboard_url) {
+            console.log("Fallback to dashboard:", dashboard_url);
+            router.visit(dashboard_url);
+          } else {
+            console.log("Final fallback to client dashboard");
+            router.visit('/client/dashboard');
+          }
+
+        } else {
+          // ✅ STEP 7: ERROR - HANDLE ERROR RESPONSE
+          const errorData = await response.json();
+          console.error('API Error Response:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData: errorData
+          });
+
+          setErrors(errorData.errors || {});
+
+          // ✅ PARSE ERROR MESSAGES WITH PRIORITY
+          let errorMessage = '❌ Erro ao criar cartão.';
+
+          if (errorData.errors?.activation_code) {
+            errorMessage = '❌ ' + (Array.isArray(errorData.errors.activation_code)
+              ? errorData.errors.activation_code[0]
+              : errorData.errors.activation_code);
+          } else if (errorData.errors?.general) {
+            errorMessage = '❌ ' + (Array.isArray(errorData.errors.general)
+              ? errorData.errors.general[0]
+              : errorData.errors.general);
+          } else if (errorData.errors?.contact) {
+            errorMessage = '❌ ' + (Array.isArray(errorData.errors.contact)
+              ? errorData.errors.contact[0]
+              : errorData.errors.contact);
+          } else if (errorData.message) {
+            errorMessage = '❌ ' + errorData.message;
+          } else if (response.status === 422) {
+            errorMessage = '❌ Dados inválidos. Verifique os campos obrigatórios.';
+          } else if (response.status === 401) {
+            errorMessage = '❌ Sessão expirada. Faça login novamente.';
+          } else if (response.status === 403) {
+            errorMessage = '❌ Acesso negado. Verifique suas permissões.';
+          } else if (response.status >= 500) {
+            errorMessage = '❌ Erro interno do servidor. Tente novamente.';
+          }
+
+          setGeneralError(errorMessage);
+        }
+
+      } catch (error) {
+        // ✅ STEP 8: NETWORK ERROR HANDLING
+        console.error('Network/Parse error:', error);
+
+        let networkError = '❌ Erro de conexão.';
+
+        if (error.name === 'SyntaxError') {
+          networkError = '❌ Erro ao processar resposta do servidor.';
+        } else if (error.message.includes('fetch')) {
+          networkError = '❌ Falha na conexão. Verifique sua internet.';
+        } else {
+          networkError = '❌ Erro inesperado. Tente novamente.';
+        }
+
+        setGeneralError(networkError + ' Tente novamente.');
       }
     }
-    
+
     setIsSubmitting(false);
-  }, [form, isSubmitting, is_purchase_flow, activation_code, edit_mode, card_id]);
+  }, [
+    form,
+    isSubmitting,
+    is_purchase_flow,
+    activation_code,
+    edit_mode,
+    card_id,
+    router,
+    showAlert
+  ]);
 
   const handleFileUpload = useCallback(async (file, type) => {
     if (!file) return;

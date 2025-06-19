@@ -3,7 +3,7 @@ import { Card, } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
   Smartphone,
   Zap,
@@ -22,14 +22,31 @@ import {
   BarChart3,
   Shield,
   Palette,
-  Contact
+  Contact,
+  CreditCard,
+  AlertCircle
 } from 'lucide-react';
 
+interface LandingPageProps {
+  auth?: {
+    user?: {
+      id: number;
+      name: string;
+      email: string;
+    }
+  };
+  hasValidPayment?: boolean;
+}
+
 const DigitalCardLanding = () => {
+  const { props } = usePage<LandingPageProps>();
+  const { auth, hasValidPayment } = props;
+
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [email, setEmail] = useState('');
+  const [showPaymentAlert, setShowPaymentAlert] = useState(false);
 
   const testimonials = [
     {
@@ -64,7 +81,8 @@ const DigitalCardLanding = () => {
         "Edição ilimitada",
         "Suporte por email",
       ],
-      popular: false
+      popular: false,
+      planKey: "basic"
     },
     {
       name: "Profissional",
@@ -78,7 +96,8 @@ const DigitalCardLanding = () => {
         "Suporte prioritário",
         "Download de contatos (vCard)"
       ],
-      popular: true
+      popular: true,
+      planKey: "premium"
     },
     {
       name: "Empresarial",
@@ -92,7 +111,8 @@ const DigitalCardLanding = () => {
         "Relatórios avançados",
         "Suporte dedicado"
       ],
-      popular: false
+      popular: false,
+      planKey: "business"
     }
   ];
 
@@ -116,8 +136,94 @@ const DigitalCardLanding = () => {
     setMobileMenuOpen(false);
   };
 
+  // Updated function to handle "Começar Agora" click
+  const handleStartNow = () => {
+    // If user is not logged in, redirect to login
+    if (!auth?.user) {
+      router.visit('/auth/redirect');
+      return;
+    }
+
+    // If user is logged in but doesn't have valid payment
+    if (!hasValidPayment) {
+      setShowPaymentAlert(true);
+      return;
+    }
+
+    // If user has valid payment, go to card creation
+    router.visit('/create-card');
+  };
+
+  // Handle plan selection
+  const handlePlanSelection = (planKey: string) => {
+    if (!auth?.user) {
+      router.visit('/auth/redirect');
+      return;
+    }
+
+    // Redirect to purchase page with selected plan
+    router.visit(`/purchase?plan=${planKey}`);
+  };
+
   return (
     <div className={`min-h-screen transition-all duration-300 ${darkMode ? 'dark bg-gray-900' : 'bg-white'}`}>
+      <Head title="DigitalCard - Cartões de Visita Digitais Inteligentes" />
+
+      {/* Payment Alert Modal */}
+      {showPaymentAlert && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                <CreditCard className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Pagamento Necessário
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Para criar seu cartão digital
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="text-orange-800 dark:text-orange-200 font-medium mb-1">
+                    Compre um plano para continuar
+                  </p>
+                  <p className="text-orange-700 dark:text-orange-300">
+                    Você precisa adquirir um de nossos planos para criar seu cartão digital personalizado.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => {
+                  setShowPaymentAlert(false);
+                  router.visit('/purchase');
+                }}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Ver Planos
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowPaymentAlert(false)}
+                className="flex-1"
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-6 py-4">
@@ -153,14 +259,39 @@ const DigitalCardLanding = () => {
                 {darkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </div>
 
-              {/* Login Button */}
-              <button
-                onClick={() => router.visit('/auth/redirect')}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <User className="w-4 h-4" />
-                <span>Entrar</span>
-              </button>
+              {/* User Status */}
+              {auth?.user ? (
+                <div className="flex items-center space-x-4">
+                  {hasValidPayment ? (
+                    <button
+                      onClick={() => router.visit('/client/dashboard')}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/30 transition-all duration-200"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Dashboard</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.visit('/purchase')}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/30 transition-all duration-200"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Comprar Plano</span>
+                    </button>
+                  )}
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Olá, {auth.user.name}
+                  </span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => router.visit('/auth/redirect')}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Entrar</span>
+                </button>
+              )}
             </nav>
 
             {/* Mobile Menu Button */}
@@ -195,14 +326,39 @@ const DigitalCardLanding = () => {
                 {darkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </div>
 
-              {/* Mobile Login Button */}
-              <button
-                onClick={() => router.visit('/auth/redirect')}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg w-full justify-center"
-              >
-                <User className="w-4 h-4" />
-                <span>Entrar</span>
-              </button>
+              {/* Mobile User Status */}
+              {auth?.user ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Olá, {auth.user.name}
+                  </p>
+                  {hasValidPayment ? (
+                    <button
+                      onClick={() => router.visit('/client/dashboard')}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/30 transition-all duration-200 w-full justify-center"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Dashboard</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.visit('/purchase')}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/30 transition-all duration-200 w-full justify-center"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Comprar Plano</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => router.visit('/auth/redirect')}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg w-full justify-center"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Entrar</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -232,12 +388,15 @@ const DigitalCardLanding = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   size="lg"
-                  onClick={() => {
-                    router.get('/client/dashboard')
-                  }}
+                  onClick={handleStartNow}
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-6 text-lg rounded-xl transition-all duration-300 transform hover:scale-105"
                 >
-                  Começar Agora
+                  {auth?.user 
+                    ? hasValidPayment 
+                      ? 'Criar Cartão'
+                      : 'Comprar Plano'
+                    : 'Começar Agora'
+                  }
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
                 <Button
@@ -425,6 +584,7 @@ const DigitalCardLanding = () => {
                 </ul>
 
                 <Button
+                  onClick={() => handlePlanSelection(plan.planKey)}
                   className={`w-full py-6 text-lg rounded-xl transition-all duration-300 ${plan.popular
                     ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white'
                     : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white'
@@ -513,9 +673,15 @@ const DigitalCardLanding = () => {
               />
               <Button
                 size="lg"
+                onClick={handleStartNow}
                 className="bg-white text-purple-600 hover:bg-gray-100 px-8 py-4 text-lg rounded-xl font-bold transition-all duration-300 transform hover:scale-105"
               >
-                Começar Grátis
+                {auth?.user 
+                  ? hasValidPayment 
+                    ? 'Criar Cartão'
+                    : 'Comprar Plano'
+                  : 'Começar Grátis'
+                }
               </Button>
             </div>
 

@@ -81,13 +81,56 @@ class CardController extends Controller
 
     public function showByCode($code)
     {
-        $card = Card::where('code', $code)->firstOrFail();
+        $card = Card::where('code', $code)->first();
+        
+        if (!$card) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'Card not found'], 404);
+            }
+            abort(404);
+        }
+        
+        // Check if card is activated
+        if ($card->status !== 'activated') {
+            if (request()->expectsJson()) {
+                return response()->json(['status' => 'pending'], 200);
+            }
+            
+            return Inertia::render('PublicCardView', [
+                'code' => $code,
+                'card' => null,
+                'error' => 'Este cartão está pendente ou o link é inválido.'
+            ]);
+        }
+        
+        if (request()->expectsJson()) {
+            return response()->json($card);
+        }
+        
+        // Increment click count
         $card->increment('click_count');
-
+        
         return Inertia::render('PublicCardView', [
-            'card' => $card->only([
-                'id', 'name', 'email', 'profile_picture', 'whatsapp', 'instagram', 'website'
-            ])
+            'code' => $code,
+            'card' => [
+                'id' => $card->id,
+                'name' => $card->name,
+                'job_title' => $card->job_title,
+                'company' => $card->company,
+                'email' => $card->email,
+                'phone' => $card->phone,
+                'whatsapp' => $card->whatsapp,
+                'website' => $card->website,
+                'location' => $card->location,
+                'bio' => $card->bio,
+                'instagram' => $card->instagram,
+                'linkedin' => $card->linkedin,
+                'twitter' => $card->twitter,
+                'facebook' => $card->facebook,
+                'profile_picture' => $card->profile_picture,
+                'logo' => $card->logo,
+                'color_theme' => $card->color_theme ?? 'blue',
+            ]
         ]);
     }
 
@@ -462,40 +505,63 @@ class CardController extends Controller
     }
 
     public function create(Request $request)
-    {
-        $prefill = null;
-        $activationCode = session('activation_code'); // Get from session
+{
+    // Check if user has paid (NEW CHECK)
+    $paidPayment = \App\Models\Payment::where('user_id', auth()->id())
+                                     ->where('status', 'paid')
+                                     ->whereNull('card_id')
+                                     ->first();
 
-        // Handle existing request system
-        if ($request->filled('request_id')) {
-            $cardRequest = \App\Models\CardRequest::find($request->input('request_id'));
+    if (!$paidPayment) {
+        return redirect()->route('purchase.index')
+                        ->with('error', 'Você precisa comprar um plano antes de criar seu cartão.');
+    }
 
-            if ($cardRequest) {
-                $prefill = [
-                    'name' => $cardRequest->name,
-                    'email' => $cardRequest->email,
-                    'whatsapp' => $cardRequest->whatsapp,
-                    'instagram' => $cardRequest->instagram,
-                    'website' => $cardRequest->website,
-                    'profile_picture' => $cardRequest->profile_picture,
-                    'logo' => $cardRequest->logo,
-                    'color_theme' => $cardRequest->color_theme,
-                    'request_id' => $cardRequest->id,
-                ];
-            }
+    // Your existing logic for prefill data
+    $prefill = null;
+    $activationCode = session('activation_code');
+
+    if ($request->filled('request_id')) {
+        $cardRequest = \App\Models\CardRequest::find($request->input('request_id'));
+        if ($cardRequest) {
+            $prefill = [
+                'name' => $cardRequest->name,
+                'email' => $cardRequest->email,
+                'whatsapp' => $cardRequest->whatsapp,
+                'instagram' => $cardRequest->instagram,
+                'website' => $cardRequest->website,
+                'profile_picture' => $cardRequest->profile_picture,
+                'logo' => $cardRequest->logo,
+                'color_theme' => $cardRequest->color_theme,
+                'request_id' => $cardRequest->id,
+            ];
         }
+    }
 
-        // Handle purchase flow
-        $customerData = session('customer_data');
-        if ($customerData) {
-            $prefill = array_merge($prefill ?? [], $customerData);
-        }
-
-        return Inertia::render('RequestCardForm', [
-            'activation_code' => $activationCode,
-            'prefill' => $prefill
+    // NEW: Add payment data to prefill
+    if ($paidPayment) {
+        $prefill = array_merge($prefill ?? [], [
+            'name' => $paidPayment->customer_name,
+            'email' => $paidPayment->customer_email,
+            'phone' => $paidPayment->customer_phone,
         ]);
     }
+
+    $customerData = session('customer_data');
+    if ($customerData) {
+        $prefill = array_merge($prefill ?? [], $customerData);
+    }
+
+    return Inertia::render('RequestCardForm', [
+        'activation_code' => $activationCode,
+        'prefill' => $prefill,
+        'payment' => $paidPayment ? [  // NEW
+            'id' => $paidPayment->id,
+            'plan' => $paidPayment->plan,
+            'plan_name' => $paidPayment->plan_name,
+        ] : null,
+    ]);
+}
 
     // ========================================
     // UPDATED: CLIENT CARD CREATION WITH MINIMAL VALIDATION
@@ -506,116 +572,140 @@ class CardController extends Controller
      */
     public function storeClient(Request $request)
     {
-        // MINIMAL VALIDATION - Only validate the most important fields
-        $validated = $request->validate([
-            // STEP 1: Most important - NAME (required)
-            'name' => 'required|string|max:255',
-            
-            // STEP 2: Contact validation - at least one contact method (validated in frontend)
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
-            'whatsapp' => 'nullable|string|max:20',
-            
-            // STEP 3: Most important - COLOR_THEME (required)
-            'color_theme' => 'required|in:blue,green,purple,pink,orange,dark',
-            
-            // STEP 4: Activation code (only if from purchase flow)
-            'activation_code' => 'nullable|string|max:50',
-            
-            // OPTIONAL FIELDS - No validation, just accept them
-            'job_title' => 'nullable|string|max:255',
-            'company' => 'nullable|string|max:255',
-            'website' => 'nullable|string|max:255',
-            'location' => 'nullable|string|max:255',
-            'bio' => 'nullable|string|max:500',
-            'instagram' => 'nullable|string|max:255',
-            'linkedin' => 'nullable|string|max:255',
-            'twitter' => 'nullable|string|max:255',
-            'facebook' => 'nullable|string|max:255',
-            'profile_picture' => 'nullable|string|max:500',
-            'logo' => 'nullable|string|max:500',
-            'request_id' => 'nullable|integer',
-        ]);
-
         try {
-            // STEP 2: Manual validation - at least one contact method
-            if (empty($validated['email']) && empty($validated['phone']) && empty($validated['whatsapp'])) {
-                return back()->withErrors([
-                    'contact' => 'Pelo menos um meio de contato é obrigatório (email, telefone ou WhatsApp).'
-                ]);
+            // ✅ STEP 1: CHECK PAYMENT
+            $paidPayment = \App\Models\Payment::where('user_id', auth()->id())
+                                            ->where('status', 'paid')
+                                            ->whereNull('card_id')
+                                            ->first();
+
+            if (!$paidPayment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pagamento não encontrado',
+                    'errors' => [
+                        'general' => 'Você precisa comprar um plano antes de criar seu cartão.'
+                    ]
+                ], 422);
             }
 
-            // Verify activation code if provided
-            if (!empty($validated['activation_code'])) {
-                $activationCode = ActivationCode::where('code', $validated['activation_code'])
+            // ✅ STEP 2: VALIDATE REQUEST DATA
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'nullable|email|max:255',
+                'phone' => 'nullable|string|max:20',
+                'whatsapp' => 'nullable|string|max:20',
+                'color_theme' => 'required|in:blue,green,purple,pink,orange,dark',
+                'activation_code' => 'nullable|string|max:50',
+                'job_title' => 'nullable|string|max:255',
+                'company' => 'nullable|string|max:255',
+                'website' => 'nullable|string|max:255',
+                'location' => 'nullable|string|max:255',
+                'bio' => 'nullable|string|max:500',
+                'instagram' => 'nullable|string|max:255',
+                'linkedin' => 'nullable|string|max:255',
+                'twitter' => 'nullable|string|max:255',
+                'facebook' => 'nullable|string|max:255',
+                'profile_picture' => 'nullable|string|max:500',
+                'logo' => 'nullable|string|max:500',
+                'request_id' => 'nullable|integer',
+            ]);
+
+            // ✅ STEP 3: BUSINESS LOGIC VALIDATION
+            if (empty($validated['email']) && empty($validated['phone']) && empty($validated['whatsapp'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Meio de contato obrigatório',
+                    'errors' => [
+                        'contact' => 'Pelo menos um meio de contato é obrigatório (email, telefone ou WhatsApp).'
+                    ]
+                ], 422);
+            }
+
+            // ✅ STEP 4: HANDLE ACTIVATION CODE (OPTIONAL)
+            $activationCode = null;
+            $activationCodeValue = $validated['activation_code'] ?? session('activation_code');
+            
+            if ($activationCodeValue) {
+                $activationCode = ActivationCode::where('code', $activationCodeValue)
                     ->where('status', 'sold')
                     ->first();
 
                 if (!$activationCode) {
-                    return back()->withErrors([
-                        'activation_code' => 'Código de ativação inválido ou já utilizado.'
-                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Código de ativação inválido',
+                        'errors' => [
+                            'activation_code' => 'Código de ativação inválido ou já utilizado.'
+                        ]
+                    ], 422);
                 }
             }
 
-            // Generate required fields
+            // ✅ STEP 5: GENERATE UNIQUE IDENTIFIERS
             $cardCode = $this->generateUniqueCardCode();
             $uniqueSlug = $this->generateUniqueSlug();
 
-            // Create card with ONLY CORE FIELDS that exist in database
+            // ✅ STEP 6: PREPARE CARD DATA
             $cardData = [
-                'user_id' => auth()->id(), // FIX: ADD THIS LINE - VERY IMPORTANT!
+                'user_id' => auth()->id(),
                 'code' => $cardCode,
+                'unique_slug' => $uniqueSlug,
                 'name' => $validated['name'],
                 'color_theme' => $validated['color_theme'],
                 'status' => 'activated',
                 'click_count' => 0,
+                'plan' => $paidPayment->plan,
             ];
 
-            // Add OPTIONAL fields only if they have values and exist in database
+            // ✅ ADD PAYMENT TRACKING
+            if (Schema::hasColumn('cards', 'payment_id')) {
+                $cardData['payment_id'] = $paidPayment->id;
+            }
+
+            // ✅ ADD ACTIVATION CODE IF PROVIDED
+            if ($activationCode) {
+                $cardData['activation_code'] = $activationCode->code;
+            }
+
+            // ✅ ADD OPTIONAL FIELDS
             $optionalFields = [
                 'email', 'phone', 'whatsapp', 'website', 'instagram', 
                 'profile_picture', 'logo', 'job_title', 'company', 
-                'location', 'bio', 'linkedin', 'twitter', 'facebook',
-                'activation_code', 'request_id'
+                'location', 'bio', 'linkedin', 'twitter', 'facebook'
             ];
 
             foreach ($optionalFields as $field) {
                 if (!empty($validated[$field])) {
-                    // Check if column exists in database before adding
                     if (Schema::hasColumn('cards', $field)) {
                         $cardData[$field] = $validated[$field];
                     }
                 }
             }
 
-            // Add unique_slug if your table has this field
-            if (Schema::hasColumn('cards', 'unique_slug')) {
-                $cardData['unique_slug'] = $uniqueSlug;
-            }
-
-            // Debug: Log what we're about to create
-            \Log::info('Creating card with data:', [
+            // ✅ STEP 7: CREATE CARD IN DATABASE
+            Log::info('Creating card with payment integration', [
                 'user_id' => auth()->id(),
                 'user_name' => auth()->user()->name ?? 'Unknown',
+                'payment_id' => $paidPayment->payment_id,
+                'plan' => $paidPayment->plan,
                 'card_data_keys' => array_keys($cardData),
-                'has_user_id' => isset($cardData['user_id']),
-                'user_id_value' => $cardData['user_id'] ?? 'NOT SET'
             ]);
 
-            // Create the card
             $card = Card::create($cardData);
 
-            // Verify the card was created with user_id
             if (!$card->user_id) {
-                \Log::error('Card created but user_id is null!', [
+                Log::error('Card created but user_id is null!', [
                     'card_id' => $card->id,
                     'auth_id' => auth()->id(),
                     'auth_check' => auth()->check()
                 ]);
             }
 
-            // Handle activation code if provided
+            // ✅ STEP 8: LINK PAYMENT TO CARD
+            $paidPayment->linkToCard($card);
+
+            // ✅ STEP 9: UPDATE ACTIVATION CODE STATUS
             if (!empty($validated['activation_code']) && isset($activationCode)) {
                 $activationCode->update([
                     'status' => 'activated',
@@ -623,23 +713,73 @@ class CardController extends Controller
                 ]);
             }
 
+            // ✅ STEP 10: LOG SUCCESS
             Log::info('Card created successfully', [
                 'card_id' => $card->id,
                 'card_code' => $card->code,
+                'card_slug' => $card->unique_slug,
                 'customer_name' => $card->name,
-                'user_id' => $card->user_id, // Log this to verify
+                'user_id' => $card->user_id,
+                'payment_id' => $paidPayment->payment_id,
+                'plan' => $paidPayment->plan,
                 'created_by' => auth()->user()->name ?? 'Unknown'
             ]);
 
-            // Redirect to success or dashboard
-            if (Schema::hasColumn('cards', 'unique_slug') && !empty($card->unique_slug)) {
-                return redirect()->route('card.success', $card->unique_slug);
-            } else {
-                return redirect()->route('client.dashboard')->with('success', 'Cartão criado com sucesso!');
-            }
+            // ✅ STEP 11: RETURN COMPLETE SUCCESS RESPONSE
+            return response()->json([
+                'success' => true,
+                'message' => 'Cartão criado com sucesso!',
+                'card' => [
+                    // Essential card data
+                    'id' => $card->id,
+                    'unique_slug' => $card->unique_slug,
+                    'code' => $card->code,
+                    'name' => $card->name,
+                    'email' => $card->email,
+                    'phone' => $card->phone,
+                    'whatsapp' => $card->whatsapp,
+                    'company' => $card->company,
+                    'job_title' => $card->job_title,
+                    'color_theme' => $card->color_theme,
+                    'status' => $card->status,
+                    'plan' => $card->plan,
+                    'user_id' => $card->user_id,
+                    
+                    // URLs for frontend use
+                    'public_url' => route('card.public', $card->unique_slug),
+                    'short_url' => config('app.url') . '/c/' . $card->code,
+                    
+                    // Timestamps
+                    'created_at' => $card->created_at->toISOString(),
+                ],
+                'payment' => [
+                    'id' => $paidPayment->id,
+                    'plan' => $paidPayment->plan,
+                    'plan_name' => $paidPayment->plan_name ?? 'Premium',
+                    'amount' => $paidPayment->amount,
+                    'formatted_amount' => 'R$ ' . number_format($paidPayment->amount / 100, 2, ',', '.'),
+                ],
+                'urls' => [
+                    'redirect_url' => route('card.success', $card->unique_slug),
+                    'dashboard_url' => route('client.dashboard'),
+                    'edit_url' => route('client.cards.edit', $card->id),
+                ]
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error during card creation', [
+                'errors' => $e->errors(),
+                'input_data' => $request->except(['activation_code']),
+                'auth_user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Dados inválidos',
+                'errors' => $e->errors()
+            ], 422);
 
         } catch (\Illuminate\Database\QueryException $e) {
-            // Database error - log the specific issue
             Log::error('Database error during card creation', [
                 'error' => $e->getMessage(),
                 'sql' => $e->getSql() ?? 'No SQL available',
@@ -648,12 +788,15 @@ class CardController extends Controller
                 'auth_user_id' => auth()->id()
             ]);
 
-            return back()->withErrors([
-                'general' => 'Erro na base de dados. Campo obrigatório pode estar em falta: ' . $e->getMessage()
-            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro na base de dados',
+                'errors' => [
+                    'general' => 'Erro na base de dados. Campo obrigatório pode estar em falta: ' . $e->getMessage()
+                ]
+            ], 422);
 
         } catch (\Exception $e) {
-            // General error
             Log::error('Card creation failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -661,14 +804,17 @@ class CardController extends Controller
                 'auth_user_id' => auth()->id()
             ]);
 
-            return back()->withErrors([
-                'general' => 'Erro ao criar cartão: ' . $e->getMessage()
-            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno do servidor',
+                'errors' => [
+                    'general' => 'Erro ao criar cartão: ' . $e->getMessage()
+                ]
+            ], 500);
         }
     }
 
-    // Add these helper methods if they don't exist:
-
+    // ✅ HELPER METHODS
     private function generateUniqueCardCode()
     {
         do {
@@ -690,10 +836,36 @@ class CardController extends Controller
     {
         $card = Card::where('unique_slug', $slug)->firstOrFail();
         
+        // Get payment info if exists
+        $payment = \App\Models\Payment::where('card_id', $card->id)->first();
+        
+        // Generate QR code URL - THIS IS THE KEY ADDITION
+        $qrCodeUrl = config('app.url') . '/c/' . $card->code;
+        
         return Inertia::render('CardSuccess', [
-            'card' => $card,
-            'card_url' => route('card.public', $card->code), // Use code, not slug
-            'short_url' => config('app.url') . '/c/' . $card->code
+            'card' => [
+                'id' => $card->id,
+                'name' => $card->name,
+                'code' => $card->code,
+                'email' => $card->email,
+                'phone' => $card->phone,
+                'whatsapp' => $card->whatsapp,
+                'company' => $card->company,
+                'job_title' => $card->job_title,
+                'color_theme' => $card->color_theme,
+                'plan' => $card->plan,
+            ],
+            'payment' => $payment ? [
+                'plan_name' => $payment->plan_name,
+                'formatted_amount' => $payment->formatted_amount,
+                'paid_at' => $payment->paid_at->format('d/m/Y H:i'),
+            ] : null,
+            'card_url' => route('card.view.code', $card->code),
+            'short_url' => config('app.url') . '/c/' . $card->code,
+            'dashboard_url' => route('client.dashboard'),
+            // ADD THESE QR CODE RELATED DATA:
+            'qr_code_url' => $qrCodeUrl, // The URL that goes in the QR code
+            'qr_download_url' => route('card.qr.download', $card->unique_slug), // For downloading QR
         ]);
     }
 

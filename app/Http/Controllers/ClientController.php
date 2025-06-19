@@ -19,7 +19,7 @@ class ClientController extends Controller
         $user = Auth::user();
         return $user->role === 'admin'
             ? redirect()->route('dashboard')
-            : redirect()->route('client.dashboard');
+            : redirect()->route('purchase.index');
     }
 
     /**

@@ -18,6 +18,32 @@ use App\Http\Controllers\{
 |--------------------------------------------------------------------------
 */
 
+// Public activation routes
+Route::prefix('activate')->name('activate.')->group(function () {
+    Route::get('/{code}', [ActivationCodeController::class, 'show'])->name('show');
+    Route::post('/{code}', [ActivationCodeController::class, 'activate'])->name('process');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin Activation Code Management (Authenticated & Verified)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    
+    // Admin Activation Code Management
+    Route::prefix('admin/activation-codes')->name('admin.codes.')->group(function () {
+        Route::get('/', [ActivationCodeController::class, 'index'])->name('index');
+        Route::post('/', [ActivationCodeController::class, 'store'])->name('store');
+        Route::post('/bulk-generate', [ActivationCodeController::class, 'bulkGenerate'])->name('bulk-generate');
+        Route::put('/{id}', [ActivationCodeController::class, 'update'])->name('update');
+        Route::delete('/{id}', [ActivationCodeController::class, 'destroy'])->name('destroy');
+        Route::get('/export', [ActivationCodeController::class, 'export'])->name('export');
+    });
+    
+});
+
 // Landing Page
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -25,17 +51,20 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/c/{code}', [CardController::class, 'showByCode'])->name('card.view.code');
 Route::get('/card/{slug}', [CardController::class, 'publicView'])->name('card.public');
 
-// Card Request System
-Route::get('/request', [CardRequestController::class, 'create'])->name('request.form');
-Route::post('/request-card', [CardRequestController::class, 'store'])->name('request.store');
-Route::get('/request/thanks', [CardRequestController::class, 'thanks'])->name('request.thanks');
 
-// Purchase System
+///////////////////////////////////////////purchase////////////////////////////////////////////////
 Route::prefix('purchase')->name('purchase.')->group(function () {
+    // Existing routes...
     Route::get('/', [PaymentController::class, 'index'])->name('index');
     Route::post('/process', [PaymentController::class, 'process'])->name('process');
     Route::get('/success', [PaymentController::class, 'success'])->name('success');
     Route::post('/webhook', [PaymentController::class, 'webhook'])->name('webhook');
+    
+    // NEW: Add these for PIX payment checking
+    Route::post('/pix/check-status', [PaymentController::class, 'checkPaymentStatus'])->name('pix.check');
+    
+    // TESTING ONLY: Manual payment confirmation (remove in production)
+    Route::post('/test/confirm-payment', [PaymentController::class, 'testConfirmPayment'])->name('test.confirm');
 });
 
 // Utility Routes
@@ -92,7 +121,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/{id}', [ClientController::class, 'update'])->name('update');
             Route::delete('/{id}', [ClientController::class, 'destroy'])->name('destroy');
             Route::post('/{id}/duplicate', [ClientController::class, 'duplicate'])->name('duplicate');
-            Route::patch('/{id}/toggle-status', [ClientController::class, 'toggleStatus'])->name('toggle-status');
+            Route::post('/{id}/toggle-status', [ClientController::class, 'toggleStatus'])->name('toggle-status');
             Route::get('/{id}/analytics', [ClientController::class, 'analytics'])->name('analytics');
         });
         
@@ -120,6 +149,14 @@ Route::middleware('auth')->group(function () {
         })->name('admin.analytics');
 
         Route::get('/analytics/data', [CardController::class, 'analytics'])->name('analytics.data');
+
+        // ADD THIS: Admin Payment Management Routes
+        Route::prefix('admin/payments')->name('admin.payments.')->group(function () {
+            Route::get('/', [PaymentController::class, 'adminIndex'])->name('index');
+            Route::post('/{id}/confirm', [PaymentController::class, 'adminConfirmPayment'])->name('confirm');
+            Route::post('/{id}/refund', [PaymentController::class, 'refund'])->name('refund');
+            Route::get('/export', [PaymentController::class, 'exportPayments'])->name('export');
+        });
         
         // Card Management (Admin)
         Route::prefix('cards')->name('cards.')->group(function () {
@@ -149,8 +186,8 @@ Route::middleware('auth')->group(function () {
         Route::prefix('admin/users')->name('admin.users.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('index');
             Route::get('/{user}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('show');
-            Route::patch('/{user}/status', [\App\Http\Controllers\Admin\UserController::class, 'updateStatus'])->name('update-status');
-            Route::patch('/{user}/role', [\App\Http\Controllers\Admin\UserController::class, 'updateRole'])->name('update-role');
+            Route::post('/{user}/status', [\App\Http\Controllers\Admin\UserController::class, 'updateStatus'])->name('update-status');
+            Route::post('/{user}/role', [\App\Http\Controllers\Admin\UserController::class, 'updateRole'])->name('update-role');
             Route::delete('/{user}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('destroy');
             Route::post('/bulk-action', [\App\Http\Controllers\Admin\UserController::class, 'bulkAction'])->name('bulk-action');
             Route::get('/export/csv', [\App\Http\Controllers\Admin\UserController::class, 'export'])->name('export');
@@ -163,16 +200,6 @@ Route::middleware('auth')->group(function () {
             
             Route::get('/{card}/activations/export', [CardController::class, 'exportActivations'])
                 ->name('activations.export');
-        });
-        
-        // Request Management
-        Route::prefix('admin/requests')->name('admin.requests.')->group(function () {
-            Route::get('/', [CardRequestController::class, 'index'])->name('index');
-            Route::get('/{id}', [CardRequestController::class, 'show'])->name('show');
-            Route::post('/{id}/convert', [CardRequestController::class, 'convertToCard'])->name('convert');
-            Route::put('/{id}/notes', [CardRequestController::class, 'updateNotes'])->name('notes');
-            Route::delete('/{id}', [CardRequestController::class, 'destroy'])->name('destroy');
-            Route::post('/bulk-action', [CardRequestController::class, 'bulkAction'])->name('bulk');
         });
         
         // Order Management
