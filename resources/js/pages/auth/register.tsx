@@ -36,12 +36,15 @@ export default function Register() {
     e.preventDefault();
     post(route('register'), {
       onFinish: () => reset('password', 'password_confirmation'),
+      onError: () => {
+        alert('Erro ao criar conta. Verifique os dados informados e tente novamente.');
+      }
     });
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center">
-      <Head title="Register" />
+      <Head title="Cadastrar" />
       <AnimatedBackground />
 
       <div className="absolute top-4 right-4 z-10">
@@ -54,16 +57,16 @@ export default function Register() {
             <LogIn className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Create an Account
+            Criar uma Conta
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Enter your details below to create your account
+            Digite seus dados abaixo para criar sua conta
           </p>
         </div>
 
         <form onSubmit={submit} className="space-y-3">
           <div>
-            <Label htmlFor="name" className="text-sm">Name</Label>
+            <Label htmlFor="name" className="text-sm">Nome</Label>
             <Input
               id="name"
               type="text"
@@ -71,14 +74,15 @@ export default function Register() {
               onChange={(e) => setData('name', e.target.value)}
               required
               autoComplete="name"
-              placeholder="Full name"
+              placeholder="Nome completo"
               disabled={processing}
+              className={`${!data.name ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' : ''}`}
             />
             <InputError message={errors.name} className="mt-1 text-xs" />
           </div>
 
           <div>
-            <Label htmlFor="email" className="text-sm">Email address</Label>
+            <Label htmlFor="email" className="text-sm">Endereço de email</Label>
             <Input
               id="email"
               type="email"
@@ -86,14 +90,15 @@ export default function Register() {
               onChange={(e) => setData('email', e.target.value)}
               required
               autoComplete="email"
-              placeholder="email@example.com"
+              placeholder="email@exemplo.com"
               disabled={processing}
+              className={`${!data.email ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' : ''}`}
             />
             <InputError message={errors.email} className="mt-1 text-xs" />
           </div>
 
           <div>
-            <Label htmlFor="password" className="text-sm">Password</Label>
+            <Label htmlFor="password" className="text-sm">Senha</Label>
             <Input
               id="password"
               type="password"
@@ -103,12 +108,13 @@ export default function Register() {
               autoComplete="new-password"
               placeholder="••••••••"
               disabled={processing}
+              className={`${!data.password ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' : ''}`}
             />
             <InputError message={errors.password} className="mt-1 text-xs" />
           </div>
 
           <div>
-            <Label htmlFor="password_confirmation" className="text-sm">Confirm password</Label>
+            <Label htmlFor="password_confirmation" className="text-sm">Confirmar senha</Label>
             <Input
               id="password_confirmation"
               type="password"
@@ -118,6 +124,7 @@ export default function Register() {
               autoComplete="new-password"
               placeholder="••••••••"
               disabled={processing}
+              className={`${!data.password_confirmation ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' : ''}`}
             />
             <InputError message={errors.password_confirmation} className="mt-1 text-xs" />
           </div>
@@ -128,14 +135,14 @@ export default function Register() {
             disabled={processing}
           >
             {processing && <LoaderCircle className="w-4 h-4 animate-spin mr-2" />}
-            Create Account
+            Criar Conta
           </Button>
         </form>
 
         <p className="mt-4 text-xs text-center text-muted-foreground">
-          Already have an account?{' '}
+          Já tem uma conta?{' '}
           <TextLink href={route('login')} className="underline text-xs">
-            Log in
+            Entrar
           </TextLink>
         </p>
       </Card>

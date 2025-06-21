@@ -40,12 +40,15 @@ export default function Login({ status, canResetPassword }: LoginProps) {
     e.preventDefault();
     post(route('login'), {
       onFinish: () => reset('password'),
+      onError: () => {
+        alert('Erro ao fazer login. Verifique suas credenciais e tente novamente.');
+      }
     });
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center">
-      <Head title="Log in" />
+      <Head title="Entrar" />
       <AnimatedBackground />
 
       <div className="absolute top-4 right-4 z-10">
@@ -73,7 +76,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
 
         <form onSubmit={submit} className="space-y-3">
           <div>
-            <Label htmlFor="email" className="text-sm">Email address</Label>
+            <Label htmlFor="email" className="text-sm">Endereço de email</Label>
             <Input
               id="email"
               type="email"
@@ -81,13 +84,15 @@ export default function Login({ status, canResetPassword }: LoginProps) {
               onChange={(e) => setData('email', e.target.value)}
               required
               autoComplete="email"
-              placeholder="email@example.com"
+              placeholder="email@exemplo.com"
               disabled={processing}
+              className={`${!data.email ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' : ''}`}
             />
             <InputError message={errors.email} className="mt-1 text-xs" />
           </div>
 
           <div>
+            <Label htmlFor="password" className="text-sm">Senha</Label>
             <Input
               id="password"
               type="password"
@@ -97,6 +102,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
               autoComplete="current-password"
               placeholder="••••••••"
               disabled={processing}
+              className={`${!data.password ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' : ''}`}
             />
             <InputError message={errors.password} className="mt-1 text-xs" />
           </div>
@@ -109,7 +115,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
               onClick={() => setData('remember', !data.remember)}
               tabIndex={3}
             />
-            <Label htmlFor="remember" className="text-sm">Remember me</Label>
+            <Label htmlFor="remember" className="text-sm">Lembrar de mim</Label>
           </div>
 
           <Button
@@ -118,10 +124,10 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             disabled={processing}
           >
             {processing && <LoaderCircle className="w-4 h-4 animate-spin mr-2" />}
-            Conecte-se
+            Conectar-se
           </Button>
           <TextLink href={route('register')} className="underline text-xs">
-            Sign Up
+            Cadastrar-se
           </TextLink>
         </form>
       </Card>
