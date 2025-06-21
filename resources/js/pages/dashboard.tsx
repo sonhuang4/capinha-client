@@ -366,13 +366,13 @@ const AdminDashboard = () => {
                         </div>
 
                         {/* Create Button */}
-                        <Button
+                        {/* <Button
                             className="w-full sm:w-auto gradient-button"
                             onClick={() => router.visit('/client/dashboard')}
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             <span className="sm:inline">Criar cartão</span>
-                        </Button>
+                        </Button> */}
                     </div>
 
                     {/* Search and Filter Section */}
