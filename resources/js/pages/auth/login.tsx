@@ -51,9 +51,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
     
     post(route('login'), {
       onFinish: () => reset('password'),
-      onError: () => {
-        alert('Erro ao fazer login. Verifique suas credenciais e tente novamente.');
-      }
     });
   };
 
@@ -82,6 +79,12 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         {status && (
           <div className="mb-3 text-center text-sm font-medium text-green-600">
             {status}
+          </div>
+        )}
+
+        {(errors.email || errors.password) && (
+          <div className="mb-3 p-3 text-center text-sm font-medium text-red-600 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+            {errors.email || errors.password || 'Erro ao fazer login. Verifique suas credenciais.'}
           </div>
         )}
 
