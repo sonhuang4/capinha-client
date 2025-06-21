@@ -1,10 +1,14 @@
 import '../css/app.css';
-
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
-import { ThemeProvider } from '@/contexts/ThemeContext'; //  Add this import
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import axios from 'axios';
+
+// ✅ Force HTTPS baseURL
+axios.defaults.baseURL = import.meta.env.VITE_APP_URL ?? 'https://capinha-client.onrender.com';
+axios.defaults.withCredentials = true;
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -16,7 +20,7 @@ createInertiaApp({
         const root = createRoot(el);
 
         root.render(
-            <ThemeProvider> {/* Wrap App in ThemeProvider */}
+            <ThemeProvider>
                 <App {...props} />
             </ThemeProvider>
         );
@@ -26,5 +30,4 @@ createInertiaApp({
     },
 });
 
-// This will set light / dark mode on load...
 initializeTheme();
