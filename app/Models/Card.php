@@ -36,7 +36,9 @@ class Card extends Model
         'twitter',
         'facebook',
         'analytics_data',
-        'request_id', // ADD THIS FIELD - it's missing!
+        'plan',        // Add this for your controller
+        'payment_id', // Add this for your controller
+        // 'request_id' - REMOVED since we don't use CardRequest
     ];
 
     protected $casts = [
@@ -55,16 +57,18 @@ class Card extends Model
         return $this->belongsTo(User::class);
     }
 
-    // ADD THIS MISSING RELATIONSHIP
-    public function cardRequest()
-    {
-        return $this->belongsTo(\App\Models\CardRequest::class, 'request_id');
-    }
+    // REMOVED - cardRequest() relationship since we don't use it
 
     // NEW RELATIONSHIP - Link to activation code
     public function activationCodeRecord()
     {
         return $this->belongsTo(ActivationCode::class, 'activation_code', 'code');
+    }
+
+    // Add relationship to payment
+    public function payment()
+    {
+        return $this->belongsTo(\App\Models\Payment::class);
     }
 
     // HELPER METHODS
