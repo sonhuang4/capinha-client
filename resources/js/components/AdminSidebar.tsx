@@ -1,6 +1,6 @@
 import React from 'react';
 import { router } from '@inertiajs/react';
-import { CreditCard, BarChart3, Settings, LogOut,Users } from 'lucide-react';
+import { CreditCard, BarChart3, Settings, LogOut, Users, LucideIcon } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +16,36 @@ import {
 import { Button } from '@/components/ui/button';
 import { Link, usePage } from '@inertiajs/react';
 
-const items = [
+// Declare the global route function (Laravel Ziggy)
+declare global {
+  function route(name: string, params?: any): string;
+}
+
+// Type definitions for Inertia and Sidebar hooks
+interface SidebarContextType {
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+}
+
+interface PageProps {
+  [key: string]: any;
+}
+
+interface InertiaPage {
+  url: string;
+  component: string;
+  props: PageProps;
+  version: string | null;
+}
+
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  badge?: string;
+}
+
+const items: MenuItem[] = [
   {
     title: "Gerenciador de usuários",
     url: "/admin/users",
@@ -29,19 +58,19 @@ const items = [
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 
-export function AdminSidebar() {
-  const { collapsed } = useSidebar();
-  const { url } = usePage();
+export function AdminSidebar(): JSX.Element {
+  const { collapsed }: SidebarContextType = useSidebar();
+  const { url }: InertiaPage = usePage();
 
-  const isActive = (path: string) => url.startsWith(path);
-  const isExpanded = items.some((i) => isActive(i.url));
+  const isActive = (path: string): boolean => url.startsWith(path);
+  const isExpanded: boolean = items.some((i) => isActive(i.url));
 
-  const getNavCls = (active: boolean) =>
+  const getNavCls = (active: boolean): string =>
     active
       ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium shadow'
       : 'hover:bg-muted/50';
 
-  const handleLogout = () => {
+  const handleLogout = (): void => {
     router.post(route('logout'));
   };
 
@@ -70,7 +99,7 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {items.map((item: MenuItem) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.url} className={getNavCls(isActive(item.url))}>

@@ -20,20 +20,29 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle,
-  ShieldCheck
+  ShieldCheck,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { Head, router } from '@inertiajs/react';
+import { Switch } from '@/components/ui/switch';
 
-// Basic UI Components
-const Input = ({ className = '', ...props }) => (
+// Basic UI Components with Dark Mode Support
+const Input = ({ className = '', darkMode = false, ...props }) => (
   <input
-    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${className}`}
+    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+      darkMode 
+        ? 'border-gray-600 bg-gray-800 text-white placeholder-gray-400' 
+        : 'border-gray-300 bg-white text-gray-900'
+    } ${className}`}
     {...props}
   />
 );
 
-const Label = ({ className = '', children, ...props }) => (
-  <label className={`block text-sm font-medium text-gray-700 mb-1 ${className}`} {...props}>
+const Label = ({ className = '', children, darkMode = false, ...props }) => (
+  <label className={`block text-sm font-medium mb-1 ${
+    darkMode ? 'text-gray-200' : 'text-gray-700'
+  } ${className}`} {...props}>
     {children}
   </label>
 );
@@ -44,13 +53,16 @@ const Button = ({
   className = '',
   disabled = false,
   children,
+  darkMode = false,
   ...props
 }) => {
   const baseClass = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
 
   const variants = {
     default: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
-    outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500",
+    outline: darkMode 
+      ? "border border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700 focus:ring-blue-500"
+      : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500",
     destructive: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
   };
 
@@ -71,16 +83,24 @@ const Button = ({
   );
 };
 
-const Card = ({ className = '', children, ...props }) => (
-  <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`} {...props}>
+const Card = ({ className = '', children, darkMode = false, ...props }) => (
+  <div className={`rounded-lg border shadow-sm ${
+    darkMode 
+      ? 'bg-gray-900 border-gray-700' 
+      : 'bg-white border-gray-200'
+  } ${className}`} {...props}>
     {children}
   </div>
 );
 
-const Alert = ({ variant = 'default', className = '', children, ...props }) => {
+const Alert = ({ variant = 'default', className = '', children, darkMode = false, ...props }) => {
   const variants = {
-    default: "bg-blue-50 border-blue-200 text-blue-800",
-    destructive: "bg-red-50 border-red-200 text-red-800"
+    default: darkMode 
+      ? "bg-blue-900/20 border-blue-700 text-blue-300"
+      : "bg-blue-50 border-blue-200 text-blue-800",
+    destructive: darkMode
+      ? "bg-red-900/20 border-red-700 text-red-300"
+      : "bg-red-50 border-red-200 text-red-800"
   };
 
   return (
@@ -96,8 +116,8 @@ const AlertDescription = ({ className = '', children, ...props }) => (
   </div>
 );
 
-// Simple Business Card Display Component
-const BusinessCardDisplay = ({ card, preview = false }) => {
+// Business Card Display Component with Dark Mode
+const BusinessCardDisplay = ({ card, preview = false, darkMode = false }) => {
   const colorThemes = {
     blue: 'from-blue-500 to-blue-600',
     green: 'from-emerald-500 to-green-600',
@@ -111,24 +131,24 @@ const BusinessCardDisplay = ({ card, preview = false }) => {
 
   return (
     <div className="w-full max-w-sm mx-auto">
-      <div className={`bg-gradient-to-br ${gradientClass} rounded-xl p-6 text-white shadow-xl`}>
-        <div className="flex items-start gap-4">
+      <div className={`bg-gradient-to-br ${gradientClass} rounded-xl p-4 sm:p-6 text-white shadow-xl`}>
+        <div className="flex items-start gap-3 sm:gap-4">
           {card.profile_picture ? (
             <img
               src={card.profile_picture}
               alt={card.name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-white/20"
+              className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-white/20"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
-              <User className="w-8 h-8 text-white/80" />
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/20 flex items-center justify-center">
+              <User className="w-6 h-6 sm:w-8 sm:h-8 text-white/80" />
             </div>
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-bold truncate">{card.name || 'Seu Nome'}</h3>
+            <h3 className="text-lg sm:text-xl font-bold truncate">{card.name || 'Seu Nome'}</h3>
             {card.job_title && (
-              <p className="text-white/90 text-sm">{card.job_title}</p>
+              <p className="text-white/90 text-xs sm:text-sm">{card.job_title}</p>
             )}
             {card.company && (
               <p className="text-white/80 text-xs">{card.company}</p>
@@ -139,43 +159,43 @@ const BusinessCardDisplay = ({ card, preview = false }) => {
             <img
               src={card.logo}
               alt="Logo"
-              className="w-12 h-12 rounded object-contain bg-white/10 p-1"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded object-contain bg-white/10 p-1"
             />
           )}
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 sm:mt-4 space-y-1 sm:space-y-2">
           {card.email && (
-            <div className="flex items-center gap-2 text-sm">
-              <Mail className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="truncate">{card.email}</span>
             </div>
           )}
           {card.phone && (
-            <div className="flex items-center gap-2 text-sm">
-              <Phone className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>{card.phone}</span>
             </div>
           )}
           {card.whatsapp && (
-            <div className="flex items-center gap-2 text-sm">
-              <Smartphone className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Smartphone className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>{card.whatsapp}</span>
             </div>
           )}
           {card.website && (
-            <div className="flex items-center gap-2 text-sm">
-              <Globe className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Globe className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="truncate">{card.website}</span>
             </div>
           )}
         </div>
 
         {(card.instagram || card.linkedin || card.twitter) && (
-          <div className="mt-3 flex gap-3">
-            {card.instagram && <Instagram className="w-4 h-4" />}
-            {card.linkedin && <Linkedin className="w-4 h-4" />}
-            {card.twitter && <Twitter className="w-4 h-4" />}
+          <div className="mt-2 sm:mt-3 flex gap-2 sm:gap-3">
+            {card.instagram && <Instagram className="w-3 h-3 sm:w-4 sm:h-4" />}
+            {card.linkedin && <Linkedin className="w-3 h-3 sm:w-4 sm:h-4" />}
+            {card.twitter && <Twitter className="w-3 h-3 sm:w-4 sm:h-4" />}
           </div>
         )}
       </div>
@@ -220,7 +240,7 @@ const submitForm = async (url, data, method = 'POST') => {
   }
 };
 
-// ValidatedInput component
+// ValidatedInput component with Dark Mode
 const ValidatedInput = ({
   name,
   label,
@@ -231,13 +251,14 @@ const ValidatedInput = ({
   value,
   onChange,
   error,
+  darkMode = false,
   ...props
 }) => {
   const isImportantField = ['name', 'color_theme', 'activation_code'].includes(name);
 
   return (
     <div>
-      <Label htmlFor={name} className="text-sm font-medium flex items-center gap-1">
+      <Label htmlFor={name} className="text-sm font-medium flex items-center gap-1" darkMode={darkMode}>
         {Icon && <Icon className="w-4 h-4" />}
         {label}
         {required && <span className="text-red-500">*</span>}
@@ -250,6 +271,7 @@ const ValidatedInput = ({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          darkMode={darkMode}
           className={`${error && isImportantField
             ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
             : ''
@@ -295,10 +317,22 @@ const ClientCardCreator = ({
   const [errors, setErrors] = useState({});
   const [generalError, setGeneralError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
 
   const [uploading, setUploading] = useState({ profile: false, logo: false });
   const profileInputRef = useRef(null);
   const logoInputRef = useRef(null);
+
+  // Dark mode effect
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.setProperty('--dark-bg', '#020818');
+      document.documentElement.style.setProperty('--dark-text', '#ae9efd');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   // Form state with initial prefill
   const [form, setForm] = useState({
@@ -790,25 +824,29 @@ const ClientCardCreator = ({
 
   if (isPreviewMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8 px-4">
+      <div className={`min-h-screen py-6 sm:py-8 px-4 transition-all duration-300 ${darkMode ? 'dark' : ''}`}
+           style={darkMode ? { backgroundColor: '#020818', color: '#ae9efd' } : { backgroundColor: '#ffffff', color: '#1f2937' }}>
         <div className="max-w-md mx-auto">
           <div className="flex items-center gap-4 mb-6">
             <Button
               variant="outline"
               onClick={() => setIsPreviewMode(false)}
               className="flex items-center gap-2"
+              darkMode={darkMode}
             >
               <ArrowLeft className="w-4 h-4" />
               Voltar à Edição
             </Button>
-            <h1 className="text-xl font-bold">Prévia do Cartão</h1>
+            <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Prévia do Cartão
+            </h1>
           </div>
 
-          <BusinessCardDisplay card={form} preview={true} />
+          <BusinessCardDisplay card={form} preview={true} darkMode={darkMode} />
 
           <div className="mt-6 space-y-3">
             {generalError && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" darkMode={darkMode}>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{generalError}</AlertDescription>
               </Alert>
@@ -818,6 +856,7 @@ const ClientCardCreator = ({
               onClick={handleSubmit}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3"
               disabled={isSubmitting}
+              darkMode={darkMode}
             >
               {isSubmitting ? (
                 <>
@@ -838,59 +877,89 @@ const ClientCardCreator = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto mb-8">
-        <div className="flex items-center justify-between mb-6">
+    <div className={`min-h-screen py-6 sm:py-8 px-4 transition-all duration-300 ${darkMode ? 'dark' : ''}`}
+         style={darkMode ? { backgroundColor: '#020818', color: '#ae9efd' } : { backgroundColor: '#ffffff', color: '#1f2937' }}>
+      <Head title={pageTitle} />
+      
+      <div className="max-w-5xl mx-auto mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-4 sm:mb-6 gap-4">
           <button
             onClick={() => navigateToRoute(edit_mode ? "/client/dashboard" : "/")}
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+            className={`flex items-center gap-2 text-sm transition-colors ${
+              darkMode 
+                ? 'text-gray-300 hover:text-white' 
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
           >
             <ArrowLeft className="w-4 h-4" />
             {edit_mode ? 'Voltar ao Dashboard' : 'Voltar ao Início'}
           </button>
 
           <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Capinha Digital
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              DigitalCard
             </h1>
-            <p className="text-sm text-gray-600">
+            <p className={`text-xs sm:text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               {pageDescription}
             </p>
           </div>
 
-          <div className="w-20" />
+          {/* Theme Toggle */}
+          <div className="flex items-center space-x-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
+            <Switch
+              checked={darkMode}
+              onCheckedChange={setDarkMode}
+              className="data-[state=checked]:bg-purple-600 scale-75 sm:scale-100"
+            />
+            {darkMode ? <Moon className="w-3 h-3 sm:w-4 sm:h-4" /> : <Sun className="w-3 h-3 sm:w-4 sm:h-4" />}
+          </div>
         </div>
 
         {generalError && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-6" darkMode={darkMode}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{generalError}</AlertDescription>
           </Alert>
         )}
 
         {successMessage && (
-          <Alert className="mb-6 border-green-200 bg-green-50 text-green-800">
+          <Alert className={`mb-6 ${
+            darkMode 
+              ? 'border-green-700 bg-green-900/20 text-green-300' 
+              : 'border-green-200 bg-green-50 text-green-800'
+          }`} darkMode={darkMode}>
             <Check className="h-4 w-4" />
             <AlertDescription>{successMessage}</AlertDescription>
           </Alert>
         )}
 
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-center mb-6 sm:mb-8">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {steps.map((step, index) => (
               <React.Fragment key={step.number}>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${step.number === currentStep
-                  ? 'bg-blue-100 text-blue-700'
-                  : step.number < currentStep
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-500'
-                  }`}>
-                  <step.icon className="w-4 h-4" />
+                <div className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
+                  step.number === currentStep
+                    ? darkMode
+                      ? 'bg-blue-900/30 text-blue-300'
+                      : 'bg-blue-100 text-blue-700'
+                    : step.number < currentStep
+                      ? darkMode
+                        ? 'bg-green-900/30 text-green-300'
+                        : 'bg-green-100 text-green-700'
+                      : darkMode
+                        ? 'bg-gray-800 text-gray-400'
+                        : 'bg-gray-100 text-gray-500'
+                }`}>
+                  <step.icon className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">{step.title}</span>
                   <span className="sm:hidden">{step.number}</span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`w-8 h-0.5 ${step.number < currentStep ? 'bg-green-300' : 'bg-gray-200'}`} />
+                  <div className={`w-4 sm:w-8 h-0.5 ${
+                    step.number < currentStep 
+                      ? 'bg-green-300' 
+                      : darkMode ? 'bg-gray-700' : 'bg-gray-200'
+                  }`} />
                 )}
               </React.Fragment>
             ))}
@@ -898,16 +967,20 @@ const ClientCardCreator = ({
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-8">
-          <Card className="p-6 space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="max-w-5xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
+          <Card className="p-4 sm:p-6 space-y-4 sm:space-y-6" darkMode={darkMode}>
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
 
               {currentStep === 1 && (
                 <div className="space-y-4">
-                  <div className="text-center mb-6">
-                    <h2 className="text-xl font-semibold mb-2">Informações Básicas</h2>
-                    <p className="text-sm text-gray-600">
+                  <div className="text-center mb-4 sm:mb-6">
+                    <h2 className={`text-lg sm:text-xl font-semibold mb-2 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      Informações Básicas
+                    </h2>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       {edit_mode ? 'Atualize suas informações principais' : 'Vamos começar com suas informações principais'}
                     </p>
                   </div>
@@ -921,6 +994,7 @@ const ClientCardCreator = ({
                     value={form.name}
                     onChange={handleChange}
                     error={errors.name}
+                    darkMode={darkMode}
                   />
 
                   <ValidatedInput
@@ -931,6 +1005,7 @@ const ClientCardCreator = ({
                     value={form.job_title}
                     onChange={handleChange}
                     error={errors.job_title}
+                    darkMode={darkMode}
                   />
 
                   <ValidatedInput
@@ -941,10 +1016,11 @@ const ClientCardCreator = ({
                     value={form.company}
                     onChange={handleChange}
                     error={errors.company}
+                    darkMode={darkMode}
                   />
 
                   <div>
-                    <Label htmlFor="bio" className="text-sm font-medium">
+                    <Label htmlFor="bio" className="text-sm font-medium" darkMode={darkMode}>
                       Descrição (Opcional)
                     </Label>
                     <textarea
@@ -953,11 +1029,15 @@ const ClientCardCreator = ({
                       value={form.bio}
                       onChange={handleChange}
                       placeholder="Uma breve descrição sobre você ou seu trabalho..."
-                      className="w-full mt-1 p-3 border border-gray-300 rounded-md bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full mt-1 p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        darkMode 
+                          ? 'border-gray-600 bg-gray-800 text-white placeholder-gray-400' 
+                          : 'border-gray-300 bg-white text-gray-900'
+                      }`}
                       rows={3}
                       maxLength={150}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {form.bio.length}/150 caracteres
                     </p>
                   </div>
@@ -966,15 +1046,19 @@ const ClientCardCreator = ({
 
               {currentStep === 2 && (
                 <div className="space-y-4">
-                  <div className="text-center mb-6">
-                    <h2 className="text-xl font-semibold mb-2">Contato & Redes Sociais</h2>
-                    <p className="text-sm text-gray-600">
+                  <div className="text-center mb-4 sm:mb-6">
+                    <h2 className={`text-lg sm:text-xl font-semibold mb-2 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      Contato & Redes Sociais
+                    </h2>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       Como as pessoas podem entrar em contato com você
                     </p>
                   </div>
 
                   {errors.contact && (
-                    <Alert variant="destructive" className="mb-4">
+                    <Alert variant="destructive" className="mb-4" darkMode={darkMode}>
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{errors.contact}</AlertDescription>
                     </Alert>
@@ -990,6 +1074,7 @@ const ClientCardCreator = ({
                       value={form.email}
                       onChange={handleChange}
                       error={errors.email}
+                      darkMode={darkMode}
                     />
 
                     <ValidatedInput
@@ -1000,6 +1085,7 @@ const ClientCardCreator = ({
                       value={form.phone}
                       onChange={handleChange}
                       error={errors.phone}
+                      darkMode={darkMode}
                     />
                   </div>
 
@@ -1011,6 +1097,7 @@ const ClientCardCreator = ({
                     value={form.whatsapp}
                     onChange={handleChange}
                     error={errors.whatsapp}
+                    darkMode={darkMode}
                   />
 
                   <ValidatedInput
@@ -1021,6 +1108,7 @@ const ClientCardCreator = ({
                     value={form.website}
                     onChange={handleChange}
                     error={errors.website}
+                    darkMode={darkMode}
                   />
 
                   <ValidatedInput
@@ -1031,10 +1119,13 @@ const ClientCardCreator = ({
                     value={form.location}
                     onChange={handleChange}
                     error={errors.location}
+                    darkMode={darkMode}
                   />
 
-                  <div className="pt-4 border-t">
-                    <h3 className="text-sm font-medium mb-3">Redes Sociais (Opcional)</h3>
+                  <div className={`pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className={`text-sm font-medium mb-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      Redes Sociais (Opcional)
+                    </h3>
                     <div className="space-y-3">
                       <ValidatedInput
                         name="instagram"
@@ -1044,6 +1135,7 @@ const ClientCardCreator = ({
                         value={form.instagram}
                         onChange={handleChange}
                         error={errors.instagram}
+                        darkMode={darkMode}
                       />
 
                       <ValidatedInput
@@ -1054,6 +1146,7 @@ const ClientCardCreator = ({
                         value={form.linkedin}
                         onChange={handleChange}
                         error={errors.linkedin}
+                        darkMode={darkMode}
                       />
 
                       <ValidatedInput
@@ -1064,6 +1157,7 @@ const ClientCardCreator = ({
                         value={form.twitter}
                         onChange={handleChange}
                         error={errors.twitter}
+                        darkMode={darkMode}
                       />
                     </div>
                   </div>
@@ -1071,33 +1165,41 @@ const ClientCardCreator = ({
               )}
 
               {currentStep === 3 && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <h2 className="text-xl font-semibold mb-2">Visual & Estilo</h2>
-                    <p className="text-sm text-gray-600">
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="text-center mb-4 sm:mb-6">
+                    <h2 className={`text-lg sm:text-xl font-semibold mb-2 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      Visual & Estilo
+                    </h2>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       Personalize a aparência do seu cartão
                     </p>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium mb-3 block">
+                    <Label className="text-sm font-medium mb-3 block" darkMode={darkMode}>
                       Foto de Perfil
                     </Label>
                     <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 relative">
+                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg flex items-center justify-center overflow-hidden border-2 border-dashed relative ${
+                        darkMode 
+                          ? 'bg-gray-800 border-gray-600' 
+                          : 'bg-gray-100 border-gray-300'
+                      }`}>
                         {form.profile_picture ? (
                           <>
                             <img src={form.profile_picture} alt="Profile" className="w-full h-full object-cover" />
                             <button
                               type="button"
                               onClick={() => removeImage('profile')}
-                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
                             >
                               ×
                             </button>
                           </>
                         ) : (
-                          <User className="w-8 h-8 text-gray-400" />
+                          <User className={`w-6 h-6 sm:w-8 sm:h-8 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
                         )}
                       </div>
                       <div className="flex flex-col gap-2">
@@ -1114,6 +1216,7 @@ const ClientCardCreator = ({
                           size="sm"
                           onClick={() => profileInputRef.current?.click()}
                           disabled={uploading.profile}
+                          darkMode={darkMode}
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           {uploading.profile ? 'Enviando...' : 'Enviar Foto'}
@@ -1123,24 +1226,28 @@ const ClientCardCreator = ({
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium mb-3 block">
+                    <Label className="text-sm font-medium mb-3 block" darkMode={darkMode}>
                       Logo da Empresa (Opcional)
                     </Label>
                     <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 relative">
+                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg flex items-center justify-center overflow-hidden border-2 border-dashed relative ${
+                        darkMode 
+                          ? 'bg-gray-800 border-gray-600' 
+                          : 'bg-gray-100 border-gray-300'
+                      }`}>
                         {form.logo ? (
                           <>
                             <img src={form.logo} alt="Logo" className="w-full h-full object-contain" />
                             <button
                               type="button"
                               onClick={() => removeImage('logo')}
-                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
                             >
                               ×
                             </button>
                           </>
                         ) : (
-                          <Building2 className="w-8 h-8 text-gray-400" />
+                          <Building2 className={`w-6 h-6 sm:w-8 sm:h-8 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
                         )}
                       </div>
                       <div className="flex flex-col gap-2">
@@ -1157,6 +1264,7 @@ const ClientCardCreator = ({
                           size="sm"
                           onClick={() => logoInputRef.current?.click()}
                           disabled={uploading.logo}
+                          darkMode={darkMode}
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           {uploading.logo ? 'Enviando...' : 'Enviar Logo'}
@@ -1166,7 +1274,7 @@ const ClientCardCreator = ({
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium mb-3 block flex items-center gap-1">
+                    <Label className="text-sm font-medium mb-3 block flex items-center gap-1" darkMode={darkMode}>
                       Tema de Cores
                       <span className="text-red-500">*</span>
                     </Label>
@@ -1176,13 +1284,22 @@ const ClientCardCreator = ({
                           key={theme.value}
                           type="button"
                           onClick={() => handleColorThemeChange(theme.value)}
-                          className={`p-3 rounded-lg border-2 transition-all ${form.color_theme === theme.value
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                            }`}
+                          className={`p-3 rounded-lg border-2 transition-all ${
+                            form.color_theme === theme.value
+                              ? darkMode
+                                ? 'border-blue-500 bg-blue-900/20'
+                                : 'border-blue-500 bg-blue-50'
+                              : darkMode
+                                ? 'border-gray-600 hover:border-gray-500'
+                                : 'border-gray-200 hover:border-gray-300'
+                          }`}
                         >
-                          <div className={`w-full h-8 rounded-md bg-gradient-to-r ${theme.gradient} mb-2`} />
-                          <p className="text-xs font-medium">{theme.name}</p>
+                          <div className={`w-full h-6 sm:h-8 rounded-md bg-gradient-to-r ${theme.gradient} mb-2`} />
+                          <p className={`text-xs font-medium ${
+                            darkMode ? 'text-gray-200' : 'text-gray-700'
+                          }`}>
+                            {theme.name}
+                          </p>
                         </button>
                       ))}
                     </div>
@@ -1197,12 +1314,14 @@ const ClientCardCreator = ({
               )}
 
               {currentStep === 4 && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <h2 className="text-xl font-semibold mb-2">
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="text-center mb-4 sm:mb-6">
+                    <h2 className={`text-lg sm:text-xl font-semibold mb-2 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
                       {edit_mode ? 'Confirmar Alterações' : 'Revisão Final'}
                     </h2>
-                    <p className="text-sm text-gray-600">
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       {edit_mode
                         ? 'Verifique as alterações antes de salvar'
                         : (is_purchase_flow
@@ -1214,19 +1333,31 @@ const ClientCardCreator = ({
                   </div>
 
                   {!edit_mode && is_purchase_flow && activation_code && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-center gap-3 text-green-700">
-                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
+                    <div className={`rounded-lg p-4 ${
+                      darkMode 
+                        ? 'bg-green-900/20 border border-green-700' 
+                        : 'bg-green-50 border border-green-200'
+                    }`}>
+                      <div className={`flex items-center gap-3 ${
+                        darkMode ? 'text-green-300' : 'text-green-700'
+                      }`}>
+                        <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                          darkMode ? 'bg-green-800' : 'bg-green-100'
+                        }`}>
                           <ShieldCheck className="w-5 h-5" />
                         </div>
                         <div>
                           <span className="font-medium">Código de Ativação Confirmado</span>
-                          <p className="text-sm text-green-600 mt-1">
+                          <p className={`text-sm mt-1 ${
+                            darkMode ? 'text-green-400' : 'text-green-600'
+                          }`}>
                             Código: <span className="font-mono font-bold">{activation_code}</span>
                           </p>
                         </div>
                       </div>
-                      <p className="text-xs text-green-600 mt-3 ml-11">
+                      <p className={`text-xs mt-3 ml-11 ${
+                        darkMode ? 'text-green-400' : 'text-green-600'
+                      }`}>
                         ✅ Seu cartão premium será ativado automaticamente
                       </p>
                     </div>
@@ -1234,7 +1365,11 @@ const ClientCardCreator = ({
 
                   {!edit_mode && is_purchase_flow && !activation_code && (
                     <div className="space-y-4">
-                      <Alert className="border-amber-200 bg-amber-50 text-amber-800">
+                      <Alert className={`${
+                        darkMode 
+                          ? 'border-amber-700 bg-amber-900/20 text-amber-300' 
+                          : 'border-amber-200 bg-amber-50 text-amber-800'
+                      }`} darkMode={darkMode}>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
                           Para ativar seu cartão premium, digite o código de ativação que você recebeu por email após a compra.
@@ -1250,15 +1385,22 @@ const ClientCardCreator = ({
                         value={form.activation_code}
                         onChange={handleChange}
                         error={errors.activation_code}
+                        darkMode={darkMode}
                       />
                     </div>
                   )}
 
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-medium mb-3">
+                  <div className={`rounded-lg p-4 ${
+                    darkMode ? 'bg-gray-800' : 'bg-gray-50'
+                  }`}>
+                    <h3 className={`font-medium mb-3 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
                       {edit_mode ? 'Suas alterações:' : 'Resumo das suas informações:'}
                     </h3>
-                    <div className="space-y-2 text-sm">
+                    <div className={`space-y-2 text-sm ${
+                      darkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       <div><strong>Nome:</strong> {form.name || 'Não informado'}</div>
                       {form.job_title && <div><strong>Cargo:</strong> {form.job_title}</div>}
                       {form.company && <div><strong>Empresa:</strong> {form.company}</div>}
@@ -1270,12 +1412,12 @@ const ClientCardCreator = ({
                       <div><strong>Tema:</strong> {colorThemes.find(t => t.value === form.color_theme)?.name}</div>
 
                       {!edit_mode && is_purchase_flow && (
-                        <div className="pt-2 border-t">
+                        <div className={`pt-2 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                           <strong>Tipo:</strong> <span className="text-blue-600 font-medium">Cartão Premium</span>
                         </div>
                       )}
                       {edit_mode && (
-                        <div className="pt-2 border-t">
+                        <div className={`pt-2 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                           <strong>Ação:</strong> <span className="text-orange-600 font-medium">Editando Cartão Existente</span>
                         </div>
                       )}
@@ -1288,40 +1430,61 @@ const ClientCardCreator = ({
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Prévia do Cartão</h3>
+              <h3 className={`text-base sm:text-lg font-semibold ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Prévia do Cartão
+              </h3>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsPreviewMode(true)}
                 className="flex items-center gap-2"
+                darkMode={darkMode}
               >
                 <Eye className="w-4 h-4" />
                 Visualizar Completo
               </Button>
             </div>
 
-            <div className="sticky top-8">
-              <BusinessCardDisplay card={form} preview={true} />
+            <div className="sticky top-4 sm:top-8">
+              <BusinessCardDisplay card={form} preview={true} darkMode={darkMode} />
 
               {!edit_mode && is_purchase_flow && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-blue-700 text-sm">
+                <div className={`mt-4 p-3 rounded-lg ${
+                  darkMode 
+                    ? 'bg-blue-900/20 border border-blue-700' 
+                    : 'bg-blue-50 border border-blue-200'
+                }`}>
+                  <div className={`flex items-center gap-2 text-sm ${
+                    darkMode ? 'text-blue-300' : 'text-blue-700'
+                  }`}>
                     <Sparkles className="w-4 h-4" />
                     <span className="font-medium">Cartão Premium</span>
                   </div>
-                  <p className="text-xs text-blue-600 mt-1">
+                  <p className={`text-xs mt-1 ${
+                    darkMode ? 'text-blue-400' : 'text-blue-600'
+                  }`}>
                     Recursos avançados, analytics e suporte prioritário incluídos
                   </p>
                 </div>
               )}
 
               {edit_mode && (
-                <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-orange-700 text-sm">
+                <div className={`mt-4 p-3 rounded-lg ${
+                  darkMode 
+                    ? 'bg-orange-900/20 border border-orange-700' 
+                    : 'bg-orange-50 border border-orange-200'
+                }`}>
+                  <div className={`flex items-center gap-2 text-sm ${
+                    darkMode ? 'text-orange-300' : 'text-orange-700'
+                  }`}>
                     <CheckCircle className="w-4 h-4" />
                     <span className="font-medium">Modo de Edição</span>
                   </div>
-                  <p className="text-xs text-orange-600 mt-1">
+                  <p className={`text-xs mt-1 ${
+                    darkMode ? 'text-orange-400' : 'text-orange-600'
+                  }`}>
                     Alterações serão salvas no cartão existente
                   </p>
                 </div>
@@ -1330,19 +1493,24 @@ const ClientCardCreator = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-8 pt-6 border-t">
+        <div className={`flex items-center justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t ${
+          darkMode ? 'border-gray-700' : 'border-gray-200'
+        }`}>
           <Button
             type="button"
             variant="outline"
             onClick={prevStep}
             disabled={currentStep === 1 || isSubmitting}
             className="flex items-center gap-2"
+            darkMode={darkMode}
           >
             <ArrowLeft className="w-4 h-4" />
             Anterior
           </Button>
 
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className={`flex items-center gap-2 text-sm ${
+            darkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
             Passo {currentStep} de {steps.length}
           </div>
 
@@ -1352,6 +1520,7 @@ const ClientCardCreator = ({
               onClick={nextStep}
               disabled={isSubmitting}
               className="flex items-center gap-2"
+              darkMode={darkMode}
             >
               Próximo
               <ArrowRight className="w-4 h-4" />
@@ -1361,6 +1530,7 @@ const ClientCardCreator = ({
               onClick={() => setIsPreviewMode(true)}
               disabled={isSubmitting}
               className="bg-gradient-to-r from-purple-600 to-blue-600 text-white flex items-center gap-2"
+              darkMode={darkMode}
             >
               <Sparkles className="w-4 h-4" />
               {finalButtonText}
@@ -1369,24 +1539,38 @@ const ClientCardCreator = ({
         </div>
 
         {!edit_mode && is_purchase_flow && currentStep === 4 && !activation_code && (
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium text-gray-900 mb-2">
+          <div className={`mt-6 sm:mt-8 p-4 rounded-lg ${
+            darkMode ? 'bg-gray-800' : 'bg-gray-50'
+          }`}>
+            <h4 className={`font-medium mb-2 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}>
               Não encontrou seu código de ativação?
             </h4>
-            <div className="text-sm text-gray-600 space-y-1">
+            <div className={`text-sm space-y-1 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
               <p>• Verifique sua caixa de entrada e spam no email cadastrado</p>
               <p>• O código possui 6 caracteres (ex: ABC123)</p>
-              <p>• Entre em contato conosco se não recebeu: suporte@capinhadigital.com.br</p>
+              <p>• Entre em contato conosco se não recebeu: suporte@digitalcard.com.br</p>
             </div>
           </div>
         )}
 
         {edit_mode && (
-          <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">
+          <div className={`mt-6 sm:mt-8 p-4 rounded-lg ${
+            darkMode 
+              ? 'bg-blue-900/20 border border-blue-700' 
+              : 'bg-blue-50 border border-blue-200'
+          }`}>
+            <h4 className={`font-medium mb-2 ${
+              darkMode ? 'text-blue-300' : 'text-blue-900'
+            }`}>
               💡 Dicas para edição
             </h4>
-            <div className="text-sm text-blue-700 space-y-1">
+            <div className={`text-sm space-y-1 ${
+              darkMode ? 'text-blue-200' : 'text-blue-700'
+            }`}>
               <p>• Todas as alterações serão salvas no cartão existente</p>
               <p>• O link do seu cartão permanecerá o mesmo</p>
               <p>• As alterações aparecerão imediatamente para quem acessar seu cartão</p>

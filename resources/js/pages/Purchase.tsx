@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   ArrowLeft,
   Check,
@@ -16,10 +17,11 @@ import {
   Smartphone,
   Mail,
   Phone,
-  User
+  User,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
-import ThemeToggle from '@/components/ThemeToggle';
 
 interface PurchasePageProps {
   selectedPlan?: string;
@@ -29,6 +31,7 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
   const [currentPlan, setCurrentPlan] = useState(selectedPlan);
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'credit'>('pix');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   const [customerForm, setCustomerForm] = useState({
     name: '',
@@ -36,6 +39,17 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
     phone: '',
     document: '', // CPF
   });
+
+  // Dark mode effect
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.setProperty('--dark-bg', '#020818');
+      document.documentElement.style.setProperty('--dark-text', '#ae9efd');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   const plans = [
     {
@@ -137,96 +151,142 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20 py-8 px-4">
-      <Head title="Finalizar Compra - Capinha Digital" />
+    <div className={`min-h-screen py-6 sm:py-8 px-4 transition-all duration-300 ${darkMode ? 'dark' : ''}`}
+         style={darkMode ? { backgroundColor: '#020818', color: '#ae9efd' } : { backgroundColor: '#ffffff', color: '#1f2937' }}>
+      <Head title="Finalizar Compra - DigitalCard" />
 
       {/* Header */}
-      <div className="max-w-6xl mx-auto mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+      <div className="max-w-7xl mx-auto mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-4 sm:mb-6 gap-4">
+          <Link href="/" className={`flex items-center gap-2 text-sm transition-colors ${
+            darkMode 
+              ? 'text-gray-300 hover:text-white' 
+              : 'text-gray-600 hover:text-gray-900'
+          }`}>
             <ArrowLeft className="w-4 h-4" />
-            Voltar ao Início
+            <span>Voltar ao Início</span>
           </Link>
 
           <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Capinha Digital
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              DigitalCard
             </h1>
-            <p className="text-sm text-muted-foreground">Finalize sua compra</p>
+            <p className={`text-xs sm:text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Finalize sua compra
+            </p>
           </div>
 
-          <ThemeToggle />
+          {/* Theme Toggle */}
+          <div className="flex items-center space-x-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
+            <Switch
+              checked={darkMode}
+              onCheckedChange={setDarkMode}
+              className="data-[state=checked]:bg-purple-600 scale-75 sm:scale-100"
+            />
+            {darkMode ? <Moon className="w-3 h-3 sm:w-4 sm:h-4" /> : <Sun className="w-3 h-3 sm:w-4 sm:h-4" />}
+          </div>
         </div>
 
         {/* Progress Indicator */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              <CreditCard className="w-4 h-4" />
+        <div className="flex items-center justify-center mb-6 sm:mb-8">
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-full text-xs sm:text-sm font-medium ${
+              darkMode 
+                ? 'bg-blue-900/30 text-blue-300' 
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>1. Pagamento</span>
             </div>
-            <div className="w-8 h-0.5 bg-gray-200 dark:bg-gray-700" />
-            <div className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-              <User className="w-4 h-4" />
+            <div className={`w-4 sm:w-8 h-0.5 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
+            <div className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-full text-xs sm:text-sm font-medium ${
+              darkMode 
+                ? 'bg-gray-800 text-gray-400' 
+                : 'bg-gray-100 text-gray-500'
+            }`}>
+              <User className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>2. Criar Cartão</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
 
           {/* Plans Selection */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-6">Escolha seu plano</h2>
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            <Card className={`p-4 sm:p-6 ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white'}`}>
+              <h2 className={`text-lg sm:text-xl font-semibold mb-4 sm:mb-6 ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Escolha seu plano
+              </h2>
 
-              <div className="grid gap-4">
+              <div className="grid gap-3 sm:gap-4">
                 {plans.map((plan) => (
                   <div
                     key={plan.id}
-                    className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${currentPlan === plan.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                      }`}
+                    className={`relative p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      currentPlan === plan.id
+                        ? darkMode
+                          ? 'border-blue-500 bg-blue-900/20'
+                          : 'border-blue-500 bg-blue-50'
+                        : darkMode
+                          ? 'border-gray-700 hover:border-gray-600'
+                          : 'border-gray-200 hover:border-gray-300'
+                    }`}
                     onClick={() => setCurrentPlan(plan.id)}
                   >
                     {plan.badge && (
-                      <Badge className={`absolute -top-2 left-4 ${plan.badgeColor} text-white text-xs`}>
+                      <Badge className={`absolute -top-2 left-2 sm:left-4 ${plan.badgeColor} text-white text-xs`}>
                         {plan.badge}
                       </Badge>
                     )}
 
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <input
-                            type="radio"
-                            name="plan"
-                            value={plan.id}
-                            checked={currentPlan === plan.id}
-                            onChange={() => setCurrentPlan(plan.id)}
-                            className="w-4 h-4 text-blue-600"
-                          />
-                          <h3 className="text-lg font-semibold">{plan.name}</h3>
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl font-bold text-green-600">
-                              R$ {plan.price.toFixed(2)}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="plan"
+                              value={plan.id}
+                              checked={currentPlan === plan.id}
+                              onChange={() => setCurrentPlan(plan.id)}
+                              className="w-4 h-4 text-blue-600"
+                            />
+                            <h3 className={`text-base sm:text-lg font-semibold ${
+                              darkMode ? 'text-white' : 'text-gray-900'
+                            }`}>
+                              {plan.name}
+                            </h3>
+                          </div>
+                          <div className="flex items-center gap-2 ml-7 sm:ml-0">
+                            <span className="text-lg sm:text-2xl font-bold text-green-600">
+                              R$ {plan.price.toFixed(2).replace('.', ',')}
                             </span>
-                            <span className="text-sm text-muted-foreground line-through">
-                              R$ {plan.originalPrice.toFixed(2)}
+                            <span className={`text-xs sm:text-sm line-through ${
+                              darkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                              R$ {plan.originalPrice.toFixed(2).replace('.', ',')}
                             </span>
                           </div>
                         </div>
 
-                        <p className="text-sm text-muted-foreground mb-3">{plan.description}</p>
+                        <p className={`text-xs sm:text-sm mb-3 ml-7 sm:ml-0 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>
+                          {plan.description}
+                        </p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+                        <div className="grid grid-cols-1 gap-1 text-xs sm:text-sm ml-7 sm:ml-0">
                           {plan.features.map((feature, index) => (
                             <div key={index} className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                              <span>{feature}</span>
+                              <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>
+                                {feature}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -238,13 +298,19 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
             </Card>
 
             {/* Customer Information */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-6">Suas informações</h2>
+            <Card className={`p-4 sm:p-6 ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white'}`}>
+              <h2 className={`text-lg sm:text-xl font-semibold mb-4 sm:mb-6 ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Suas informações
+              </h2>
 
               <form onSubmit={handlePurchase} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name" className="text-sm font-medium">
+                    <Label htmlFor="name" className={`text-sm font-medium ${
+                      darkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       Nome Completo *
                     </Label>
                     <Input
@@ -258,7 +324,9 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                   </div>
 
                   <div>
-                    <Label htmlFor="email" className="text-sm font-medium">
+                    <Label htmlFor="email" className={`text-sm font-medium ${
+                      darkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       E-mail *
                     </Label>
                     <Input
@@ -273,9 +341,11 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="phone" className="text-sm font-medium">
+                    <Label htmlFor="phone" className={`text-sm font-medium ${
+                      darkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       Telefone/WhatsApp *
                     </Label>
                     <Input
@@ -289,7 +359,9 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                   </div>
 
                   <div>
-                    <Label htmlFor="document" className="text-sm font-medium">
+                    <Label htmlFor="document" className={`text-sm font-medium ${
+                      darkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       CPF (Opcional)
                     </Label>
                     <Input
@@ -303,25 +375,46 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                 </div>
 
                 {/* Payment Method */}
-                <div className="pt-6 border-t">
-                  <h3 className="text-lg font-semibold mb-4">Forma de pagamento</h3>
+                <div className="pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className={`text-base sm:text-lg font-semibold mb-4 ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Forma de pagamento
+                  </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('pix')}
-                      className={`p-4 rounded-lg border-2 transition-all ${paymentMethod === 'pix'
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                        }`}
+                      className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
+                        paymentMethod === 'pix'
+                          ? darkMode
+                            ? 'border-green-500 bg-green-900/20'
+                            : 'border-green-500 bg-green-50'
+                          : darkMode
+                            ? 'border-gray-700 hover:border-gray-600'
+                            : 'border-gray-200 hover:border-gray-300'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
-                          <Smartphone className="w-4 h-4 text-green-600 dark:text-green-300" />
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
+                          darkMode ? 'bg-green-800' : 'bg-green-100'
+                        }`}>
+                          <Smartphone className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                            darkMode ? 'text-green-300' : 'text-green-600'
+                          }`} />
                         </div>
                         <div className="text-left">
-                          <h4 className="font-medium">PIX</h4>
-                          <p className="text-sm text-muted-foreground">Pagamento instantâneo</p>
+                          <h4 className={`font-medium text-sm sm:text-base ${
+                            darkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            PIX
+                          </h4>
+                          <p className={`text-xs sm:text-sm ${
+                            darkMode ? 'text-gray-300' : 'text-gray-600'
+                          }`}>
+                            Pagamento instantâneo
+                          </p>
                         </div>
                       </div>
                     </button>
@@ -329,44 +422,54 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('credit')}
-                      className={`p-4 rounded-lg border-2 transition-all ${paymentMethod === 'credit'
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                        }`}
+                      className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
+                        paymentMethod === 'credit'
+                          ? darkMode
+                            ? 'border-blue-500 bg-blue-900/20'
+                            : 'border-blue-500 bg-blue-50'
+                          : darkMode
+                            ? 'border-gray-700 hover:border-gray-600'
+                            : 'border-gray-200 hover:border-gray-300'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
-                          <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-300" />
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
+                          darkMode ? 'bg-blue-800' : 'bg-blue-100'
+                        }`}>
+                          <CreditCard className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                            darkMode ? 'text-blue-300' : 'text-blue-600'
+                          }`} />
                         </div>
                         <div className="text-left">
-                          <h4 className="font-medium">Cartão de Crédito</h4>
-                          <p className="text-sm text-muted-foreground">Até 12x sem juros</p>
+                          <h4 className={`font-medium text-sm sm:text-base ${
+                            darkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            Cartão de Crédito
+                          </h4>
+                          <p className={`text-xs sm:text-sm ${
+                            darkMode ? 'text-gray-300' : 'text-gray-600'
+                          }`}>
+                            Até 12x sem juros
+                          </p>
                         </div>
                       </div>
                     </button>
                   </div>
                 </div>
 
-                <div className="pt-6">
+                <div className="pt-4 sm:pt-6 space-y-3">
                   <Button
                     type="submit"
                     disabled={!isFormValid() || isProcessing}
-                    className="w-full gradient-button py-3 text-lg font-semibold"
+                    className="w-full bg-gradient-to-r from-purple-900 to-blue-600 hover:to-purple-900 hover:from-blue-900 text-white py-3 text-sm sm:text-lg font-semibold rounded-lg"
                   >
                     {isProcessing ? (
                       <span>Processando...</span>
                     ) : (
                       <span>
-                        Finalizar Compra - R$ {selectedPlanData.price.toFixed(2)}
+                        Finalizar Compra - R$ {selectedPlanData.price.toFixed(2).replace('.', ',')}
                       </span>
                     )}
-                  </Button>
-                  <Button
-                    className='w-full gradient-button py-3 text-lg font-semibold mt-[10px]'
-                    onClick={() => {
-                      router.visit('/create-card')
-                    }}>
-                    Without plan
                   </Button>
                 </div>
               </form>
@@ -374,48 +477,76 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
           </div>
 
           {/* Order Summary */}
-          <div className="space-y-6">
-            <Card className="p-6 sticky top-8">
-              <h3 className="text-lg font-semibold mb-4">Resumo do pedido</h3>
+          <div className="space-y-4 sm:space-y-6">
+            <Card className={`p-4 sm:p-6 sticky top-4 sm:top-8 ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white'}`}>
+              <h3 className={`text-base sm:text-lg font-semibold mb-4 ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Resumo do pedido
+              </h3>
 
               <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">{selectedPlanData.name}</h4>
-                    <p className="text-sm text-muted-foreground">{selectedPlanData.description}</p>
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <h4 className={`font-medium text-sm sm:text-base ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {selectedPlanData.name}
+                    </h4>
+                    <p className={`text-xs sm:text-sm ${
+                      darkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>
+                      {selectedPlanData.description}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">R$ {selectedPlanData.price.toFixed(2)}</div>
-                    <div className="text-sm text-muted-foreground line-through">
-                      R$ {selectedPlanData.originalPrice.toFixed(2)}
+                    <div className="font-semibold text-sm sm:text-base">
+                      R$ {selectedPlanData.price.toFixed(2).replace('.', ',')}
+                    </div>
+                    <div className={`text-xs sm:text-sm line-through ${
+                      darkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      R$ {selectedPlanData.originalPrice.toFixed(2).replace('.', ',')}
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center font-semibold text-lg">
-                    <span>Total</span>
-                    <span className="text-green-600">R$ {selectedPlanData.price.toFixed(2)}</span>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <div className="flex justify-between items-center font-semibold text-base sm:text-lg">
+                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>Total</span>
+                    <span className="text-green-600">
+                      R$ {selectedPlanData.price.toFixed(2).replace('.', ',')}
+                    </span>
                   </div>
 
-                  <div className="text-sm text-center text-muted-foreground mt-2">
+                  <div className={`text-xs sm:text-sm text-center mt-2 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
                     Pagamento único • Sem mensalidades
                   </div>
                 </div>
               </div>
 
               {/* Features Summary */}
-              <div className="mt-6 pt-6 border-t">
-                <h4 className="font-medium mb-3">Incluído no seu plano:</h4>
+              <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h4 className={`font-medium mb-3 text-sm sm:text-base ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Incluído no seu plano:
+                </h4>
                 <div className="space-y-2">
                   {selectedPlanData.features.slice(0, 4).map((feature, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span>{feature}</span>
+                    <div key={index} className="flex items-center gap-2 text-xs sm:text-sm">
+                      <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>
+                        {feature}
+                      </span>
                     </div>
                   ))}
                   {selectedPlanData.features.length > 4 && (
-                    <div className="text-sm text-muted-foreground">
+                    <div className={`text-xs sm:text-sm ${
+                      darkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
                       +{selectedPlanData.features.length - 4} mais funcionalidades
                     </div>
                   )}
@@ -423,24 +554,25 @@ const PurchasePage: React.FC<PurchasePageProps> = ({ selectedPlan = 'basic' }) =
               </div>
 
               {/* Trust Badges */}
-              <div className="mt-6 pt-6 border-t">
-                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+              <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className={`flex items-center justify-center gap-3 sm:gap-4 text-xs ${
+                  darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                   <div className="flex items-center gap-1">
-                    <Shield className="w-4 h-4" />
+                    <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Seguro</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Zap className="w-4 h-4" />
+                    <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Instantâneo</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4" />
+                    <Star className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Suporte</span>
                   </div>
                 </div>
               </div>
             </Card>
-
           </div>
         </div>
       </div>

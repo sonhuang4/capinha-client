@@ -10,6 +10,7 @@ use App\Models\ActivationCode;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class CardController extends Controller
@@ -143,96 +144,190 @@ class CardController extends Controller
         return response()->json($card);
     }
 
+    // ========================================
+    // FIXED SHARING METHODS
+    // ========================================
+
     public function getShortLink($id)
     {
-        $card = Card::findOrFail($id);
-        
-        $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/c/' . $card->code;
-        
-        return response()->json([
-            'short_link' => $shortLink,
-            'code' => $card->code,
-            'card_name' => $card->name
-        ]);
+        try {
+            $card = Card::findOrFail($id);
+            
+            $baseUrl = config('app.url', 'http://localhost:8000');
+            $shortLink = $baseUrl . '/c/' . $card->code;
+            
+            return response()->json([
+                'success' => true,
+                'short_link' => $shortLink,
+                'code' => $card->code,
+                'card_name' => $card->name
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get short link: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate short link'
+            ], 500);
+        }
     }
 
-    public function getWhatsAppLink($id)
+    public function getWhatsAppShare($id)
     {
-        $card = Card::findOrFail($id);
-        
-        $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/c/' . $card->code;
-        
-        $message = "👋 Hi! Check out my digital business card: " . $shortLink;
-        $whatsappUrl = "https://api.whatsapp.com/send?text=" . urlencode($message);
-        
-        return response()->json([
-            'whatsapp_url' => $whatsappUrl,
-            'message' => $message,
-            'short_link' => $shortLink
-        ]);
+        try {
+            $card = Card::findOrFail($id);
+            
+            $baseUrl = config('app.url', 'http://localhost:8000');
+            $shortLink = $baseUrl . '/c/' . $card->code;
+            
+            $message = "👋 Olá! Confira meu cartão de visita digital: " . $shortLink;
+            $whatsappUrl = "https://api.whatsapp.com/send?text=" . urlencode($message);
+            
+            return response()->json([
+                'success' => true,
+                'whatsapp_url' => $whatsappUrl,
+                'fallback_message' => $message,
+                'short_link' => $shortLink
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get WhatsApp share: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate WhatsApp link'
+            ], 500);
+        }
     }
 
     public function getEmailShare($id)
     {
-        $card = Card::findOrFail($id);
-        
-        $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/c/' . $card->code;
-        
-        $subject = "Digital Business Card - " . $card->name;
-        $body = "Hi!\n\nCheck out my digital business card: " . $shortLink . "\n\nBest regards,\n" . $card->name;
-        
-        $mailtoUrl = "mailto:?subject=" . urlencode($subject) . "&body=" . urlencode($body);
-        
-        return response()->json([
-            'mailto_url' => $mailtoUrl,
-            'subject' => $subject,
-            'body' => $body,
-            'short_link' => $shortLink
-        ]);
+        try {
+            $card = Card::findOrFail($id);
+            
+            $baseUrl = config('app.url', 'http://localhost:8000');
+            $shortLink = $baseUrl . '/c/' . $card->code;
+            
+            $subject = "Cartão Digital - " . $card->name;
+            $body = "Olá!\n\nConfira meu cartão de visita digital: " . $shortLink . "\n\nAtenciosamente,\n" . $card->name;
+            
+            return response()->json([
+                'success' => true,
+                'subject' => $subject,
+                'body' => $body,
+                'short_link' => $shortLink
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get email share: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate email content'
+            ], 500);
+        }
     }
 
     public function getSharingOptions($id)
     {
-        $card = Card::findOrFail($id);
-        
-        $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-        $shortLink = $baseUrl . '/c/' . $card->code;
-        
-        $whatsappMessage = "👋 Hi! Check out my digital business card: " . $shortLink;
-        $whatsappUrl = "https://api.whatsapp.com/send?text=" . urlencode($whatsappMessage);
-        
-        $emailSubject = "Digital Business Card - " . $card->name;
-        $emailBody = "Hello,\n\nI'd like to share my digital business card with you.\n\nView my card: " . $shortLink . "\n\nBest regards,\n" . $card->name;
-        $mailtoUrl = "mailto:?subject=" . urlencode($emailSubject) . "&body=" . urlencode($emailBody);
-        
-        $smsMessage = "Check out my digital business card: " . $shortLink;
-        $smsUrl = "sms:?body=" . urlencode($smsMessage);
-        
-        return response()->json([
-            'short_link' => $shortLink,
-            'whatsapp' => [
-                'url' => $whatsappUrl,
-                'message' => $whatsappMessage
-            ],
-            'email' => [
-                'url' => $mailtoUrl,
-                'subject' => $emailSubject,
-                'body' => $emailBody
-            ],
-            'sms' => [
-                'url' => $smsUrl,
-                'message' => $smsMessage
-            ],
-            'social' => [
-                'twitter' => "https://twitter.com/intent/tweet?text=" . urlencode("Check out my digital business card: " . $shortLink),
-                'linkedin' => "https://www.linkedin.com/sharing/share-offsite/?url=" . urlencode($shortLink),
-                'facebook' => "https://www.facebook.com/sharer/sharer.php?u=" . urlencode($shortLink)
-            ]
-        ]);
+        try {
+            $card = Card::findOrFail($id);
+            
+            $baseUrl = config('app.url', 'http://localhost:8000');
+            $shortLink = $baseUrl . '/c/' . $card->code;
+            
+            $whatsappMessage = "👋 Olá! Confira meu cartão de visita digital: " . $shortLink;
+            $whatsappUrl = "https://api.whatsapp.com/send?text=" . urlencode($whatsappMessage);
+            
+            $emailSubject = "Cartão Digital - " . $card->name;
+            $emailBody = "Olá,\n\nGostaria de compartilhar meu cartão de visita digital com você.\n\nVer meu cartão: " . $shortLink . "\n\nAtenciosamente,\n" . $card->name;
+            $mailtoUrl = "mailto:?subject=" . urlencode($emailSubject) . "&body=" . urlencode($emailBody);
+            
+            $smsMessage = "Confira meu cartão de visita digital: " . $shortLink;
+            $smsUrl = "sms:?body=" . urlencode($smsMessage);
+            
+            return response()->json([
+                'success' => true,
+                'short_link' => $shortLink,
+                'whatsapp' => [
+                    'url' => $whatsappUrl,
+                    'message' => $whatsappMessage
+                ],
+                'email' => [
+                    'url' => $mailtoUrl,
+                    'subject' => $emailSubject,
+                    'body' => $emailBody
+                ],
+                'sms' => [
+                    'url' => $smsUrl,
+                    'message' => $smsMessage
+                ],
+                'social' => [
+                    'twitter' => "https://twitter.com/intent/tweet?text=" . urlencode("Confira meu cartão de visita digital: " . $shortLink),
+                    'linkedin' => "https://www.linkedin.com/sharing/share-offsite/?url=" . urlencode($shortLink),
+                    'facebook' => "https://www.facebook.com/sharer/sharer.php?u=" . urlencode($shortLink)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get sharing options: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate sharing options'
+            ], 500);
+        }
     }
+
+    public function sendEmailToUser($id)
+    {
+        try {
+            Log::info('Starting email send for card ID: ' . $id);
+            
+            $card = Card::findOrFail($id);
+            Log::info('Found card: ' . $card->name . ', Email: ' . $card->email);
+            
+            if (!$card->email) {
+                Log::warning('Card has no email address');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Card owner has no email address'
+                ], 400);
+            }
+            
+            $baseUrl = config('app.url', 'http://localhost:8000');
+            $shortLink = $baseUrl . '/c/' . $card->code;
+            
+            $subject = "Seu Cartão Digital está Pronto - " . $card->name;
+            $body = "Olá " . $card->name . ",\n\n";
+            $body .= "Seu cartão de visita digital está ativo!\n\n";
+            $body .= "🔗 Link do seu cartão: " . $shortLink . "\n\n";
+            $body .= "Você pode compartilhar este link com qualquer pessoa para mostrar suas informações de contato.\n\n";
+            $body .= "Atenciosamente,\nEquipe Capinha Digital";
+            
+            Log::info('About to send email to: ' . $card->email);
+            
+            \Illuminate\Support\Facades\Mail::raw($body, function ($message) use ($card, $subject) {
+                $message->to($card->email, $card->name)
+                        ->subject($subject);
+            });
+            
+            Log::info('Email sent successfully');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Email enviado com sucesso para ' . $card->email,
+                'recipient' => $card->email,
+                'subject' => $subject
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Email sending failed: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Falha ao enviar email: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ========================================
+    // ANALYTICS METHODS
+    // ========================================
 
     public function analytics()
     {
@@ -251,13 +346,14 @@ class CardController extends Controller
 
             switch ($filter) {
                 case 'today':
-                    $activationQuery->today();
+                    $activationQuery->whereDate('created_at', today());
                     break;
                 case '7days':
                     $activationQuery->where('created_at', '>=', now()->subDays(7));
                     break;
                 case 'month':
-                    $activationQuery->thisMonth();
+                    $activationQuery->whereMonth('created_at', now()->month)
+                                   ->whereYear('created_at', now()->year);
                     break;
                 case 'all':
                 default:
@@ -314,9 +410,9 @@ class CardController extends Controller
                 'activations_by_card' => $activationsByCard,
 
                 // Time-based stats
-                'activations_today' => \App\Models\Activation::today()->count(),
-                'activations_this_week' => \App\Models\Activation::thisWeek()->count(),
-                'activations_this_month' => \App\Models\Activation::thisMonth()->count(),
+                'activations_today' => \App\Models\Activation::whereDate('created_at', today())->count(),
+                'activations_this_week' => \App\Models\Activation::whereBetween('created_at', [now()->startOfWeek(), now()])->count(),
+                'activations_this_month' => \App\Models\Activation::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
 
                 // Device stats (if available)
                 'device_stats' => $this->getDeviceStats($filter),
@@ -371,13 +467,14 @@ class CardController extends Controller
             
             switch ($filter) {
                 case 'today':
-                    $query->today();
+                    $query->whereDate('created_at', today());
                     break;
                 case '7days':
                     $query->where('created_at', '>=', now()->subDays(7));
                     break;
                 case 'month':
-                    $query->thisMonth();
+                    $query->whereMonth('created_at', now()->month)
+                          ->whereYear('created_at', now()->year);
                     break;
             }
 
@@ -433,58 +530,9 @@ class CardController extends Controller
         }
     }
 
-    public function sendEmailToUser($id)
-    {
-        try {
-            \Log::info('Starting email send for card ID: ' . $id);
-            
-            $card = Card::findOrFail($id);
-            \Log::info('Found card: ' . $card->name . ', Email: ' . $card->email);
-            
-            if (!$card->email) {
-                \Log::warning('Card has no email address');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Card owner has no email address'
-                ], 400);
-            }
-            
-            $baseUrl = config('app.frontend_url', 'http://localhost:8000');
-            $shortLink = $baseUrl . '/c/' . $card->code;
-            
-            $subject = "Your Digital Business Card is Ready - " . $card->name;
-            $body = "Hi " . $card->name . ",\n\n";
-            $body .= "Your digital business card is now active!\n\n";
-            $body .= "🔗 Your card link: " . $shortLink . "\n\n";
-            $body .= "You can share this link with anyone to showcase your contact information.\n\n";
-            $body .= "Best regards,\nCapinha Digital Team";
-            
-            \Log::info('About to send email to: ' . $card->email);
-            
-            \Illuminate\Support\Facades\Mail::raw($body, function ($message) use ($card, $subject) {
-                $message->to($card->email, $card->name)
-                        ->subject($subject);
-            });
-            
-            \Log::info('Email sent successfully');
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Email sent successfully to ' . $card->email,
-                'recipient' => $card->email,
-                'subject' => $subject
-            ]);
-            
-        } catch (\Exception $e) {
-            \Log::error('Email sending failed: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send email: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+    // ========================================
+    // REMAINING METHODS (KEEP EXISTING)
+    // ========================================
 
     public function storePublicRequest(Request $request)
     {
@@ -505,63 +553,63 @@ class CardController extends Controller
     }
 
     public function create(Request $request)
-{
-    // Check if user has paid (NEW CHECK)
-    $paidPayment = \App\Models\Payment::where('user_id', auth()->id())
-                                     ->where('status', 'paid')
-                                     ->whereNull('card_id')
-                                     ->first();
+    {
+        // Check if user has paid (NEW CHECK)
+        $paidPayment = \App\Models\Payment::where('user_id', auth()->id())
+                                         ->where('status', 'paid')
+                                         ->whereNull('card_id')
+                                         ->first();
 
-    if (!$paidPayment) {
-        return redirect()->route('purchase.index')
-                        ->with('error', 'Você precisa comprar um plano antes de criar seu cartão.');
-    }
-
-    // Your existing logic for prefill data
-    $prefill = null;
-    $activationCode = session('activation_code');
-
-    if ($request->filled('request_id')) {
-        $cardRequest = \App\Models\CardRequest::find($request->input('request_id'));
-        if ($cardRequest) {
-            $prefill = [
-                'name' => $cardRequest->name,
-                'email' => $cardRequest->email,
-                'whatsapp' => $cardRequest->whatsapp,
-                'instagram' => $cardRequest->instagram,
-                'website' => $cardRequest->website,
-                'profile_picture' => $cardRequest->profile_picture,
-                'logo' => $cardRequest->logo,
-                'color_theme' => $cardRequest->color_theme,
-                'request_id' => $cardRequest->id,
-            ];
+        if (!$paidPayment) {
+            return redirect()->route('purchase.index')
+                            ->with('error', 'Você precisa comprar um plano antes de criar seu cartão.');
         }
-    }
 
-    // NEW: Add payment data to prefill
-    if ($paidPayment) {
-        $prefill = array_merge($prefill ?? [], [
-            'name' => $paidPayment->customer_name,
-            'email' => $paidPayment->customer_email,
-            'phone' => $paidPayment->customer_phone,
+        // Your existing logic for prefill data
+        $prefill = null;
+        $activationCode = session('activation_code');
+
+        if ($request->filled('request_id')) {
+            $cardRequest = \App\Models\CardRequest::find($request->input('request_id'));
+            if ($cardRequest) {
+                $prefill = [
+                    'name' => $cardRequest->name,
+                    'email' => $cardRequest->email,
+                    'whatsapp' => $cardRequest->whatsapp,
+                    'instagram' => $cardRequest->instagram,
+                    'website' => $cardRequest->website,
+                    'profile_picture' => $cardRequest->profile_picture,
+                    'logo' => $cardRequest->logo,
+                    'color_theme' => $cardRequest->color_theme,
+                    'request_id' => $cardRequest->id,
+                ];
+            }
+        }
+
+        // NEW: Add payment data to prefill
+        if ($paidPayment) {
+            $prefill = array_merge($prefill ?? [], [
+                'name' => $paidPayment->customer_name,
+                'email' => $paidPayment->customer_email,
+                'phone' => $paidPayment->customer_phone,
+            ]);
+        }
+
+        $customerData = session('customer_data');
+        if ($customerData) {
+            $prefill = array_merge($prefill ?? [], $customerData);
+        }
+
+        return Inertia::render('RequestCardForm', [
+            'activation_code' => $activationCode,
+            'prefill' => $prefill,
+            'payment' => $paidPayment ? [  // NEW
+                'id' => $paidPayment->id,
+                'plan' => $paidPayment->plan,
+                'plan_name' => $paidPayment->plan_name,
+            ] : null,
         ]);
     }
-
-    $customerData = session('customer_data');
-    if ($customerData) {
-        $prefill = array_merge($prefill ?? [], $customerData);
-    }
-
-    return Inertia::render('RequestCardForm', [
-        'activation_code' => $activationCode,
-        'prefill' => $prefill,
-        'payment' => $paidPayment ? [  // NEW
-            'id' => $paidPayment->id,
-            'plan' => $paidPayment->plan,
-            'plan_name' => $paidPayment->plan_name,
-        ] : null,
-    ]);
-}
 
     // ========================================
     // UPDATED: CLIENT CARD CREATION WITH MINIMAL VALIDATION
@@ -832,6 +880,7 @@ class CardController extends Controller
         
         return $slug;
     }
+
     public function success($slug)
     {
         $card = Card::where('unique_slug', $slug)->firstOrFail();
@@ -892,6 +941,7 @@ class CardController extends Controller
             ], 500);
         }
     }
+
     /**
      * Public view using unique slug
      */
@@ -926,11 +976,6 @@ class CardController extends Controller
             'download_url' => route('card.qr.download', $slug)
         ]);
     }
-
-    /**
-     * Generate unique slug for new system
-     */
-    
 
     public function destroy($id)
     {
@@ -1088,7 +1133,7 @@ class CardController extends Controller
                     'created_at' => $card->created_at->toISOString(),
                     'time_ago' => $card->created_at->diffForHumans(),
                     'activation_code' => $card->activation_code,
-                    'card_url' => config('app.frontend_url', 'http://localhost:8000') . '/c/' . $card->code,
+                    'card_url' => config('app.url', 'http://localhost:8000') . '/c/' . $card->code,
                     'is_from_request' => !empty($card->request_id),
                     // Add request data if available
                     'request_notes' => $cardRequest ? $cardRequest->notes : null,
@@ -1205,7 +1250,7 @@ class CardController extends Controller
         $subject = "Seu Cartão Digital está Pronto! - " . $card->name;
         $body = "Olá " . $card->name . ",\n\n";
         $body .= "Seu cartão digital foi ativado com sucesso!\n\n";
-        $body .= "🔗 Link do seu cartão: " . config('app.frontend_url', 'http://localhost:8000') . '/c/' . $card->code . "\n\n";
+        $body .= "🔗 Link do seu cartão: " . config('app.url', 'http://localhost:8000') . '/c/' . $card->code . "\n\n";
         $body .= "Você pode compartilhar este link com qualquer pessoa.\n\n";
         $body .= "Atenciosamente,\nEquipe Capinha Digital";
 
@@ -1289,7 +1334,7 @@ class CardController extends Controller
                     'click_count' => $card->click_count,
                     'created_at' => $card->created_at->format('d/m/Y H:i'),
                     'time_ago' => $card->created_at->diffForHumans(),
-                    'card_url' => config('app.frontend_url', 'http://localhost:8000') . '/c/' . $card->code,
+                    'card_url' => config('app.url', 'http://localhost:8000') . '/c/' . $card->code,
                     'revenue' => $this->getCardRevenue($card),
                     'card_type' => $this->determineCardType($card),
                     'is_from_request' => !empty($card->request_id),
@@ -1643,16 +1688,14 @@ class CardController extends Controller
             ]);
 
         } catch (\Exception $e) {
-        \Log::error('Order analytics error: ' . $e->getMessage());
-        
-        return response()->json([
-            'revenue_by_type' => [],
-            'monthly_revenue' => [],
-            'total_revenue' => 0,
-            'average_order_value' => 0,
-        ]);
+            \Log::error('Order analytics error: ' . $e->getMessage());
+            
+            return response()->json([
+                'revenue_by_type' => [],
+                'monthly_revenue' => [],
+                'total_revenue' => 0,
+                'average_order_value' => 0,
+            ]);
+        }
     }
-    }
-
-    
 }

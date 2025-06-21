@@ -167,6 +167,13 @@ Route::middleware('auth')->group(function () {
             Route::put('/{id}/toggle-status', [CardController::class, 'toggleStatus'])->name('toggle');
             Route::get('/{id}/qr', [CardController::class, 'qr'])->name('qr');
             Route::get('/{id}/analytics', [CardController::class, 'analytics'])->name('analytics');
+            
+            // FIXED: Add the missing sharing endpoints
+            Route::get('/{id}/short-link', [CardController::class, 'getShortLink'])->name('short-link');
+            Route::get('/{id}/whatsapp-share', [CardController::class, 'getWhatsAppShare'])->name('whatsapp-share');
+            Route::get('/{id}/email-share', [CardController::class, 'getEmailShare'])->name('email-share');
+            Route::get('/{id}/sharing-options', [CardController::class, 'getSharingOptions'])->name('sharing-options');
+            Route::get('/{id}/send-email', [CardController::class, 'sendEmailToUser'])->name('send-email');
         });
         
         // Analytics

@@ -50,6 +50,7 @@ interface SharingOptions {
 // Extended BusinessCard interface to ensure email field
 interface ExtendedBusinessCard extends BusinessCard {
     email?: string;
+    clickCount?: number;
 }
 
 const AdminDashboard = () => {
@@ -61,16 +62,24 @@ const AdminDashboard = () => {
     const [copiedLinks, setCopiedLinks] = useState<Set<string>>(new Set());
     const [statusFilter, setStatusFilter] = useState<'all' | 'activated' | 'pending'>('all');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        axios.get('/cards')
-            .then((response) => {
-                setCards(response.data);
-            })
-            .catch((error: any) => {
-                console.error('Erro ao carregar cartões:', error);
-            });
+        loadCards();
     }, []);
+
+    const loadCards = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('/cards');
+            setCards(response.data);
+        } catch (error: any) {
+            console.error('Erro ao carregar cartões:', error);
+            alert('Erro ao carregar cartões: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filteredCards = cards.filter(card => {
         const matchesSearch = card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,6 +99,7 @@ const AdminDashboard = () => {
             );
         } catch (error: any) {
             console.error('Falha ao alternar o status do cartão:', error);
+            alert('Erro ao alterar status: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -154,24 +164,29 @@ const AdminDashboard = () => {
     const copyShortLink = async (card: ExtendedBusinessCard) => {
         try {
             const response = await axios.get(`/cards/${card.id}/short-link`);
-            const { short_link } = response.data;
+            
+            if (response.data.success) {
+                const { short_link } = response.data;
 
-            await navigator.clipboard.writeText(short_link);
+                await navigator.clipboard.writeText(short_link);
 
-            // Show visual feedback
-            setCopiedLinks(prev => new Set([...prev, card.id]));
-            setTimeout(() => {
-                setCopiedLinks(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(card.id);
-                    return newSet;
-                });
-            }, 2000);
+                // Show visual feedback
+                setCopiedLinks(prev => new Set([...prev, card.id]));
+                setTimeout(() => {
+                    setCopiedLinks(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(card.id);
+                        return newSet;
+                    });
+                }, 2000);
 
-            alert("Link copiado! Link curto copiado para a área de transferência");
+                alert("Link copiado! Link curto copiado para a área de transferência");
+            } else {
+                throw new Error(response.data.message || 'Failed to get short link');
+            }
         } catch (error: any) {
             console.error('Falha ao copiar link curto:', error);
-            alert("Falha ao copiar link curto:");
+            alert("Falha ao copiar link curto: " + (error.response?.data?.message || error.message));
         }
     };
 
@@ -181,51 +196,61 @@ const AdminDashboard = () => {
             console.log('Calling:', `/cards/${card.id}/whatsapp-share`);
 
             const response = await axios.get(`/cards/${card.id}/whatsapp-share`);
-            const { whatsapp_url, fallback_message } = response.data;
+            
+            if (response.data.success) {
+                const { whatsapp_url, fallback_message } = response.data;
 
-            console.log('Got WhatsApp URL:', whatsapp_url);
+                console.log('Got WhatsApp URL:', whatsapp_url);
 
-            // Try to open WhatsApp
-            const newWindow = window.open(whatsapp_url, '_blank');
+                // Try to open WhatsApp
+                const newWindow = window.open(whatsapp_url, '_blank');
 
-            // If window didn't open (blocked), use fallback
-            setTimeout(() => {
-                if (!newWindow || newWindow.closed) {
-                    // Copy message to clipboard as fallback
-                    navigator.clipboard.writeText(fallback_message).then(() => {
-                        alert("Link do WhatsApp bloqueado. Mensagem copiada para a área de transferência! Cole-a manualmente no WhatsApp.");
-                    }).catch(() => {
-                        alert(`Link do WhatsApp bloqueado. Mensagem copiada para a área de transferência! Cole-a manualmente no WhatsApp.\n\n${fallback_message}`);
-                    });
-                }
-            }, 1000);
+                // If window didn't open (blocked), use fallback
+                setTimeout(() => {
+                    if (!newWindow || newWindow.closed) {
+                        // Copy message to clipboard as fallback
+                        navigator.clipboard.writeText(fallback_message).then(() => {
+                            alert("Link do WhatsApp bloqueado. Mensagem copiada para a área de transferência! Cole-a manualmente no WhatsApp.");
+                        }).catch(() => {
+                            alert(`Link do WhatsApp bloqueado. Mensagem copiada para a área de transferência! Cole-a manualmente no WhatsApp.\n\n${fallback_message}`);
+                        });
+                    }
+                }, 1000);
+            } else {
+                throw new Error(response.data.message || 'Failed to get WhatsApp share');
+            }
 
         } catch (error: any) {
             console.error('Falha ao obter o link do WhatsApp:', error);
-            alert("Erro: Falha ao gerar link do WhatsApp");
+            alert("Erro: Falha ao gerar link do WhatsApp - " + (error.response?.data?.message || error.message));
         }
     };
 
     // Share via Email
     const shareViaEmail = async (card: ExtendedBusinessCard) => {
         try {
-            const response = await axios.get('/cards/' + card.id + '/email-share');
-            const { subject, body } = response.data;
+            const response = await axios.get(`/cards/${card.id}/email-share`);
+            
+            if (response.data.success) {
+                const { subject, body } = response.data;
 
-            // Create email content for copying
-            const emailContent = "Subject: " + subject + "\n\nTo: [Enter recipient email]\n\n" + body;
+                // Create email content for copying
+                const emailContent = "Subject: " + subject + "\n\nTo: [Enter recipient email]\n\n" + body;
 
-            // Try to copy to clipboard
-            navigator.clipboard.writeText(emailContent).then(() => {
-                alert("Conteúdo do e-mail copiado para a área de transferência!\n\nAgora você pode:\n1. Abrir o Gmail/Yahoo/Outlook\n2. Colar o conteúdo\n3. Adicionar o e-mail do destinatário\n4. Enviar!");
-            }).catch(() => {
-                // Fallback if clipboard doesn't work
-                prompt("Copie este conteúdo de e-mail manualmente:", emailContent);
-            });
+                // Try to copy to clipboard
+                navigator.clipboard.writeText(emailContent).then(() => {
+                    alert("Conteúdo do e-mail copiado para a área de transferência!\n\nAgora você pode:\n1. Abrir o Gmail/Yahoo/Outlook\n2. Colar o conteúdo\n3. Adicionar o e-mail do destinatário\n4. Enviar!");
+                }).catch(() => {
+                    // Fallback if clipboard doesn't work
+                    prompt("Copie este conteúdo de e-mail manualmente:", emailContent);
+                });
+            } else {
+                throw new Error(response.data.message || 'Failed to get email share');
+            }
 
         } catch (error: any) {
             console.error('Falha ao obter dados de e-mail:', error);
-            alert("Erro: Falha ao gerar conteúdo de e-mail");
+            alert("Erro: Falha ao gerar conteúdo de e-mail - " + (error.response?.data?.message || error.message));
         }
     };
 
@@ -236,22 +261,22 @@ const AdminDashboard = () => {
             return;
         }
 
-        if (!confirm("Send activation email to: " + card.email + "?")) {
+        if (!confirm("Enviar email de ativação para: " + card.email + "?")) {
             return;
         }
 
         try {
-            const response = await axios.get('/cards/' + card.id + '/send-email');
+            const response = await axios.get(`/cards/${card.id}/send-email`);
 
             if (response.data.success) {
                 alert("✅ E-mail enviado com sucesso para: " + response.data.recipient);
             } else {
-                alert("❌ Fracassada: " + response.data.message);
+                alert("❌ Falha: " + response.data.message);
             }
 
         } catch (error: any) {
             console.error('Erro ao enviar e-mail:', error);
-            alert("❌ Falha ao enviar o e-mail. Verifique o console para obter detalhes.");
+            alert("❌ Falha ao enviar o e-mail: " + (error.response?.data?.message || error.message));
         }
     };
 
@@ -259,9 +284,15 @@ const AdminDashboard = () => {
     const getSharingOptions = async (card: ExtendedBusinessCard): Promise<SharingOptions | null> => {
         try {
             const response = await axios.get(`/cards/${card.id}/sharing-options`);
-            return response.data;
+            
+            if (response.data.success) {
+                return response.data;
+            } else {
+                throw new Error(response.data.message || 'Failed to get sharing options');
+            }
         } catch (error: any) {
             console.error('Falha ao obter opções de compartilhamento:', error);
+            alert("Erro ao obter opções de compartilhamento: " + (error.response?.data?.message || error.message));
             return null;
         }
     };
@@ -311,7 +342,7 @@ const AdminDashboard = () => {
                     <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-1">
                             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                                Gestão de Cartões de Visit
+                                Gestão de Cartões de Visita
                             </h1>
                             <p className="text-sm sm:text-base text-muted-foreground">
                                 Crie e gerencie cartões de visita digitais
@@ -324,7 +355,7 @@ const AdminDashboard = () => {
                                     <Badge variant="outline" className="text-xs">{cards.length}</Badge>
                                 </div>
                                 <div className="flex items-center gap-1 text-xs sm:text-sm">
-                                    <span className="text-muted-foreground">Ativa:</span>
+                                    <span className="text-muted-foreground">Ativo:</span>
                                     <Badge variant="default" className="text-xs bg-green-100 text-green-800">{activatedCount}</Badge>
                                 </div>
                                 <div className="flex items-center gap-1 text-xs sm:text-sm">
@@ -335,8 +366,6 @@ const AdminDashboard = () => {
                         </div>
 
                         {/* Create Button */}
-                        {/* <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                                <DialogTrigger asChild> */}
                         <Button
                             className="w-full sm:w-auto gradient-button"
                             onClick={() => router.visit('/client/dashboard')}
@@ -344,23 +373,6 @@ const AdminDashboard = () => {
                             <Plus className="w-4 h-4 mr-2" />
                             <span className="sm:inline">Criar cartão</span>
                         </Button>
-                        {/* </DialogTrigger>
-                                <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
-                                    <DialogHeader>
-                                        <DialogTitle>
-                                            {selectedCard ? 'Edit Business Card' : 'Create New Business Card'}
-                                        </DialogTitle>
-                                    </DialogHeader>
-                                    <CardForm
-                                        card={selectedCard}
-                                        onSave={handleSaveCard}
-                                        onCancel={() => {
-                                            setIsFormOpen(false);
-                                            setSelectedCard(null);
-                                        }}
-                                    />
-                                </DialogContent>
-                            </Dialog> */}
                     </div>
 
                     {/* Search and Filter Section */}
@@ -393,7 +405,7 @@ const AdminDashboard = () => {
                                     onClick={() => setStatusFilter('activated')}
                                     className="text-xs sm:text-sm"
                                 >
-                                    Ativa ({activatedCount})
+                                    Ativo ({activatedCount})
                                 </Button>
                                 <Button
                                     size="sm"
@@ -410,19 +422,41 @@ const AdminDashboard = () => {
                                     <Badge variant="outline" className="text-xs">{filteredCards.length}</Badge>
                                 </div>
                             </div>
+
+                            {/* Refresh Button */}
+                            <div className="flex justify-end">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={loadCards}
+                                    disabled={loading}
+                                    className="text-xs"
+                                >
+                                    {loading ? 'Carregando...' : 'Atualizar'}
+                                </Button>
+                            </div>
                         </div>
                     </Card>
 
                     {/* Cards Display */}
                     <Card className="material-card p-4 sm:p-6 animate-fade-in">
-                        {filteredCards.length === 0 ? (
+                        {loading ? (
+                            <div className="p-8 text-center text-muted-foreground">
+                                <div className="space-y-2">
+                                    <p className="text-lg font-medium">Carregando cartões...</p>
+                                    <div className="flex justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : filteredCards.length === 0 ? (
                             <div className="p-8 text-center text-muted-foreground">
                                 {searchTerm || statusFilter !== 'all' ? (
                                     <div className="space-y-2">
-                                        <p className="text-lg font-medium">No cards found</p>
+                                        <p className="text-lg font-medium">Nenhum cartão encontrado</p>
                                         <p className="text-sm">
-                                            {searchTerm && `No cards match "${searchTerm}". `}
-                                            {statusFilter !== 'all' && `No ${statusFilter} cards found. `}
+                                            {searchTerm && `Nenhum cartão corresponde a "${searchTerm}". `}
+                                            {statusFilter !== 'all' && `Nenhum cartão ${statusFilter} encontrado. `}
                                             Tente ajustar sua pesquisa ou filtro.
                                         </p>
                                         <Button
@@ -434,7 +468,7 @@ const AdminDashboard = () => {
                                             }}
                                             className="mt-4"
                                         >
-                                            Clear Filters
+                                            Limpar Filtros
                                         </Button>
                                     </div>
                                 ) : (
@@ -495,8 +529,8 @@ const AdminDashboard = () => {
                                                 <div className="grid grid-cols-3 gap-2">
                                                     <button
                                                         onClick={() => handleDeleteCard(card)}
-                                                        className="flex items-center justify-center p-2.5 text-xs font-medium rounded-lg bg-white/70 dark:bg-gray-800/70 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all border border-white/50 dark:border-gray-700/50"
-                                                        title="Delete Card"
+                                                        className="flex items-center justify-center p-2.5 text-xs font-medium rounded-lg bg-white/70 dark:bg-gray-800/70 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all border border-white/50 dark:border-gray-700/50"
+                                                        title="Deletar Cartão"
                                                     >
                                                         <Delete className="w-4 h-4" />
                                                     </button>
@@ -504,7 +538,7 @@ const AdminDashboard = () => {
                                                     <button
                                                         onClick={() => handlePreview(card)}
                                                         className="flex items-center justify-center p-2.5 text-xs font-medium rounded-lg bg-white/70 dark:bg-gray-800/70 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-all border border-white/50 dark:border-gray-700/50"
-                                                        title="Preview Card"
+                                                        title="Visualizar Cartão"
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
@@ -514,7 +548,7 @@ const AdminDashboard = () => {
                                                             ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600"
                                                             : "bg-white/70 dark:bg-gray-800/70 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-700 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 border-white/50 dark:border-gray-700/50"
                                                             }`}
-                                                        title={copiedLinks.has(card.id) ? "Link Copied!" : "Copy Link"}
+                                                        title={copiedLinks.has(card.id) ? "Link Copiado!" : "Copiar Link"}
                                                     >
                                                         {copiedLinks.has(card.id) ? (
                                                             <Check className="w-4 h-4" />
@@ -534,16 +568,16 @@ const AdminDashboard = () => {
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => shareOnWhatsApp(card)}
-                                                        className="flex-1 flex items-center justify-center p-3 rounded-lg text-emerald-500 hover:text-emerald-600 shadow-sm hover:shadow-md transition-all"
-                                                        title="Share on WhatsApp"
+                                                        className="flex-1 flex items-center justify-center p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 shadow-sm hover:shadow-md transition-all border border-white/50 dark:border-gray-700/50"
+                                                        title="Compartilhar no WhatsApp"
                                                     >
                                                         <MessageCircle className="w-5 h-5" />
                                                     </button>
 
                                                     <button
                                                         onClick={() => shareViaEmail(card)}
-                                                        className="flex-1 flex items-center justify-center p-3 rounded-lg text-blue-500 hover:text-blue-600 shadow-sm hover:shadow-md transition-all"
-                                                        title="Share via Email"
+                                                        className="flex-1 flex items-center justify-center p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 shadow-sm hover:shadow-md transition-all border border-white/50 dark:border-gray-700/50"
+                                                        title="Compartilhar via Email"
                                                     >
                                                         <Mail className="w-5 h-5" />
                                                     </button>
@@ -551,8 +585,8 @@ const AdminDashboard = () => {
                                                     {card.email ? (
                                                         <button
                                                             onClick={() => sendEmailToUser(card)}
-                                                            className="flex-1 flex items-center justify-center p-3 rounded-lg text-purple-500 hover:text-purple-600 shadow-sm hover:shadow-md transition-all"
-                                                            title={`Send activation email to ${card.email}`}
+                                                            className="flex-1 flex items-center justify-center p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 shadow-sm hover:shadow-md transition-all border border-white/50 dark:border-gray-700/50"
+                                                            title={`Enviar email de ativação para ${card.email}`}
                                                         >
                                                             <Mail className="w-5 h-5" />
                                                         </button>
@@ -560,8 +594,8 @@ const AdminDashboard = () => {
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
                                                                 <button
-                                                                    className="flex-1 flex items-center justify-center p-3 rounded-lg text-gray-500 hover:text-gray-600 shadow-sm hover:shadow-md transition-all"
-                                                                    title="More sharing options"
+                                                                    className="flex-1 flex items-center justify-center p-3 rounded-lg bg-white/70 dark:bg-gray-800/70 text-gray-500 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/30 shadow-sm hover:shadow-md transition-all border border-white/50 dark:border-gray-700/50"
+                                                                    title="Mais opções de compartilhamento"
                                                                 >
                                                                     <Share2 className="w-5 h-5" />
                                                                 </button>
@@ -596,10 +630,57 @@ const AdminDashboard = () => {
                     <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
                         <DialogContent className="w-[95vw] max-w-md">
                             <DialogHeader>
-                                <DialogTitle>Card Preview</DialogTitle>
+                                <DialogTitle>Visualização do Cartão</DialogTitle>
                             </DialogHeader>
                             {selectedCard && (
-                                <BusinessCardDisplay card={selectedCard} preview={true} />
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                        <h3 className="font-bold text-lg mb-2">{selectedCard.name}</h3>
+                                        {selectedCard.email && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                                📧 {selectedCard.email}
+                                            </p>
+                                        )}
+                                        {selectedCard.phone && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                                📱 {selectedCard.phone}
+                                            </p>
+                                        )}
+                                        {selectedCard.whatsapp && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                                💬 {selectedCard.whatsapp}
+                                            </p>
+                                        )}
+                                        {selectedCard.company && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                                🏢 {selectedCard.company}
+                                            </p>
+                                        )}
+                                        {selectedCard.job_title && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                                💼 {selectedCard.job_title}
+                                            </p>
+                                        )}
+                                        {selectedCard.website && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                                🌐 {selectedCard.website}
+                                            </p>
+                                        )}
+                                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                            <p className="text-xs text-gray-500">
+                                                Status: <span className={selectedCard.status === 'activated' ? 'text-green-600' : 'text-amber-600'}>
+                                                    {selectedCard.status === 'activated' ? 'Ativo' : 'Pendente'}
+                                                </span>
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                Clicks: {selectedCard.clickCount || 0}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                Código: {selectedCard.code}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                         </DialogContent>
                     </Dialog>
