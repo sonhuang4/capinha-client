@@ -36,8 +36,19 @@ export default function Login({ status, canResetPassword }: LoginProps) {
     remember: false,
   });
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
+    
+    if (!validateEmail(data.email)) {
+      alert('Por favor, insira um endereço de email válido.');
+      return;
+    }
+    
     post(route('login'), {
       onFinish: () => reset('password'),
       onError: () => {
@@ -86,7 +97,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
               autoComplete="email"
               placeholder="email@exemplo.com"
               disabled={processing}
-              className={`${!data.email ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' : ''}`}
+              className={`${!data.email ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}
+              style={!data.email ? { borderColor: '#2f5afb' } : {}}
             />
             <InputError message={errors.email} className="mt-1 text-xs" />
           </div>
@@ -102,7 +114,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
               autoComplete="current-password"
               placeholder="••••••••"
               disabled={processing}
-              className={`${!data.password ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' : ''}`}
+              className={`${!data.password ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}
+              style={!data.password ? { borderColor: '#2f5afb' } : {}}
             />
             <InputError message={errors.password} className="mt-1 text-xs" />
           </div>
