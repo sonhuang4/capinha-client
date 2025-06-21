@@ -1066,7 +1066,8 @@ class CardController extends Controller
      */
     private function getRecentOrders($limit = 10)
     {
-        return Card::orderByDesc('created_at')
+        return Card::select(['id', 'name', 'email', 'status', 'payment_status', 'created_at', 'activation_code', 'code', 'company', 'job_title', 'logo', 'linkedin'])
+            ->orderByDesc('created_at')
             ->limit($limit)
             ->get()
             ->map(function ($card) {
@@ -1260,7 +1261,8 @@ class CardController extends Controller
      */
     public function indexWithOrders()
     {
-        return Card::orderBy('created_at', 'desc')
+        return Card::select(['id', 'name', 'email', 'status', 'payment_status', 'created_at', 'code', 'click_count', 'customer_notes', 'purchase_date', 'activation_date', 'expiry_date', 'company', 'job_title', 'logo', 'linkedin'])
+            ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($card) {
                 return [
