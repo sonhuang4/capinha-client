@@ -12,7 +12,7 @@ interface Props {
 }
 
 const CardQRCode = ({ card }: Props) => {
-  const url = `http://localhost:8000/c/${card.code}`;
+  const url = `${window.location.origin}/c/${card.code}`;
 
   return (
     <AdminLayout>
