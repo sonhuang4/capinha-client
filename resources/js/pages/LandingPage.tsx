@@ -218,7 +218,7 @@ const DigitalCardLanding = () => {
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 sm:w-20 sm:h-20 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center">
                 {/* <Contact className="w-4 h-4 sm:w-6 sm:h-6 text-white" /> */}
                 <img src="/images/capinha-logo.png" className="rounded-lg"
                   alt="Capinha Digital" />
@@ -720,7 +720,7 @@ const DigitalCardLanding = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             <div className="space-y-4 sm:col-span-2 lg:col-span-1">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 sm:w-20 sm:h-20 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center">
+                <div className="w-8 h-8 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center">
                    <img src="/images/capinha-logo.png" className="rounded-lg"
                   alt="Capinha Digital" />
                 </div>
