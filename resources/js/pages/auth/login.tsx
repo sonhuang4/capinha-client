@@ -43,14 +43,28 @@ export default function Login({ status, canResetPassword }: LoginProps) {
 
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Client-side validation
+    if (!data.email.trim()) {
+      alert('Por favor, insira seu email.');
+      return;
+    }
+    
+    if (!data.password.trim()) {
+      alert('Por favor, insira sua senha.');
+      return;
+    }
     
     if (!validateEmail(data.email)) {
       alert('Por favor, insira um endereço de email válido.');
       return;
     }
     
+    // Submit the form
     post(route('login'), {
       onFinish: () => reset('password'),
+      preserveScroll: true,
     });
   };
 
@@ -84,11 +98,11 @@ export default function Login({ status, canResetPassword }: LoginProps) {
 
         {(errors.email || errors.password) && (
           <div className="mb-3 p-3 text-center text-sm font-medium text-red-600 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
-            {errors.email || errors.password || 'Erro ao fazer login. Verifique suas credenciais.'}
+            {errors.email || errors.password || 'Credenciais inválidas. Verifique seu email e senha.'}
           </div>
         )}
 
-        <form onSubmit={submit} className="space-y-3">
+        <form onSubmit={submit} className="space-y-3" noValidate>
           <div>
             <Label htmlFor="email" className="text-sm">Endereço de email</Label>
             <Input
@@ -96,7 +110,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
               type="email"
               value={data.email}
               onChange={(e) => setData('email', e.target.value)}
-              required
               autoComplete="email"
               placeholder="email@exemplo.com"
               disabled={processing}
@@ -113,7 +126,6 @@ export default function Login({ status, canResetPassword }: LoginProps) {
               type="password"
               value={data.password}
               onChange={(e) => setData('password', e.target.value)}
-              required
               autoComplete="current-password"
               placeholder="••••••••"
               disabled={processing}
@@ -142,6 +154,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             {processing && <LoaderCircle className="w-4 h-4 animate-spin mr-2" />}
             Conectar-se
           </Button>
+          
           <TextLink href={route('register')} className="underline text-xs">
             Cadastrar-se
           </TextLink>
