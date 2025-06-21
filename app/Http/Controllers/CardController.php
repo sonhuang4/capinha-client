@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Card;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\CardRequest;
 use App\Models\ActivationCode;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
@@ -35,19 +34,11 @@ class CardController extends Controller
             'profile_picture' => 'nullable|string',
             'logo' => 'nullable|string',
             'color_theme' => 'nullable|string',
-            'request_id' => 'nullable|integer', 
         ]);
         
         $data['code'] = \Str::random(6); 
 
         $card = Card::create($data);
-
-        // If this card came from a request, mark it processed
-        if (!empty($data['request_id'])) {
-            \App\Models\CardRequest::where('id', $data['request_id'])->update([
-                'status' => 'processed',
-            ]);
-        }
 
         return redirect()->route('dashboard')->with('success', 'Card created successfully.');
     }
@@ -531,26 +522,8 @@ class CardController extends Controller
     }
 
     // ========================================
-    // REMAINING METHODS (KEEP EXISTING)
+    // CARD CREATION AND MANAGEMENT
     // ========================================
-
-    public function storePublicRequest(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'whatsapp' => 'nullable|string|max:30',
-            'instagram' => 'nullable|string|max:100',
-            'website' => 'nullable|string|max:255',
-            'profile_picture' => 'nullable|url',
-            'logo' => 'nullable|url',
-            'color_theme' => 'nullable|string|max:50',
-        ]);
-
-        CardRequest::create($validated);
-
-        return redirect('/request/thanks');
-    }
 
     public function create(Request $request)
     {
@@ -565,34 +538,17 @@ class CardController extends Controller
                             ->with('error', 'Você precisa comprar um plano antes de criar seu cartão.');
         }
 
-        // Your existing logic for prefill data
+        // Prepare prefill data
         $prefill = null;
         $activationCode = session('activation_code');
 
-        if ($request->filled('request_id')) {
-            $cardRequest = \App\Models\CardRequest::find($request->input('request_id'));
-            if ($cardRequest) {
-                $prefill = [
-                    'name' => $cardRequest->name,
-                    'email' => $cardRequest->email,
-                    'whatsapp' => $cardRequest->whatsapp,
-                    'instagram' => $cardRequest->instagram,
-                    'website' => $cardRequest->website,
-                    'profile_picture' => $cardRequest->profile_picture,
-                    'logo' => $cardRequest->logo,
-                    'color_theme' => $cardRequest->color_theme,
-                    'request_id' => $cardRequest->id,
-                ];
-            }
-        }
-
         // NEW: Add payment data to prefill
         if ($paidPayment) {
-            $prefill = array_merge($prefill ?? [], [
+            $prefill = [
                 'name' => $paidPayment->customer_name,
                 'email' => $paidPayment->customer_email,
                 'phone' => $paidPayment->customer_phone,
-            ]);
+            ];
         }
 
         $customerData = session('customer_data');
@@ -656,7 +612,6 @@ class CardController extends Controller
                 'facebook' => 'nullable|string|max:255',
                 'profile_picture' => 'nullable|string|max:500',
                 'logo' => 'nullable|string|max:500',
-                'request_id' => 'nullable|integer',
             ]);
 
             // ✅ STEP 3: BUSINESS LOGIC VALIDATION
@@ -1115,12 +1070,6 @@ class CardController extends Controller
             ->limit($limit)
             ->get()
             ->map(function ($card) {
-                // Get card request data manually if needed
-                $cardRequest = null;
-                if (!empty($card->request_id)) {
-                    $cardRequest = \App\Models\CardRequest::find($card->request_id);
-                }
-                
                 return [
                     'id' => $card->id,
                     'order_id' => '#ORD-' . str_pad($card->id, 6, '0', STR_PAD_LEFT),
@@ -1134,14 +1083,6 @@ class CardController extends Controller
                     'time_ago' => $card->created_at->diffForHumans(),
                     'activation_code' => $card->activation_code,
                     'card_url' => config('app.url', 'http://localhost:8000') . '/c/' . $card->code,
-                    'is_from_request' => !empty($card->request_id),
-                    // Add request data if available
-                    'request_notes' => $cardRequest ? $cardRequest->notes : null,
-                    'original_request' => $cardRequest ? [
-                        'id' => $cardRequest->id,
-                        'status' => $cardRequest->status,
-                        'processed_at' => $cardRequest->processed_at,
-                    ] : null,
                 ];
             });
     }
@@ -1319,8 +1260,7 @@ class CardController extends Controller
      */
     public function indexWithOrders()
     {
-        return Card::with(['cardRequest'])
-            ->orderBy('created_at', 'desc')
+        return Card::orderBy('created_at', 'desc')
             ->get()
             ->map(function ($card) {
                 return [
@@ -1337,7 +1277,6 @@ class CardController extends Controller
                     'card_url' => config('app.url', 'http://localhost:8000') . '/c/' . $card->code,
                     'revenue' => $this->getCardRevenue($card),
                     'card_type' => $this->determineCardType($card),
-                    'is_from_request' => !empty($card->request_id),
                     'customer_notes' => $card->customer_notes,
                     'purchase_date' => $card->purchase_date ? Carbon::parse($card->purchase_date)->format('d/m/Y H:i') : null,
                     'activation_date' => $card->activation_date ? Carbon::parse($card->activation_date)->format('d/m/Y H:i') : null,
