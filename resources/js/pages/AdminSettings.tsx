@@ -5,7 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Bell, Shield, Palette, AlertCircle, CheckCircle } from 'lucide-react';
+import { ToastProvider, useToast } from '@/components/ui/toast';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { Settings, Bell, Shield, Palette, AlertCircle, CheckCircle, Save, RotateCcw, Key, Eye, EyeOff } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import axios from 'axios';
 import AdminLayout from '@/layouts/admin-layouts';
 
@@ -29,7 +37,13 @@ interface ValidationErrors {
   theme?: string;
 }
 
-const AdminSettings = () => {
+interface PasswordChangeForm {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
+}
+
+const AdminSettingsContent = () => {
   const [form, setForm] = useState<FormData>({
     platform_name: '',
     admin_email: '',
@@ -47,65 +61,107 @@ const AdminSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Modals state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState<PasswordChangeForm>({
+    current_password: '',
+    new_password: '',
+    new_password_confirmation: ''
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Load settings on component mount
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'reset' | 'unsaved-changes' | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    type: null,
+    isLoading: false
+  });
+
+  const { success, error, warning, info } = useToast();
+
+  // Carregar configurações ao montar o componente
   useEffect(() => {
-    setIsLoading(true);
-    axios.get('/settings')
-      .then((res) => {
-        // Ensure all fields have default values
-        const settingsData = {
-          platform_name: res.data.platform_name || '',
-          admin_email: res.data.admin_email || '',
-          base_url: res.data.base_url || '',
-          email_notifications: res.data.email_notifications || false,
-          card_alerts: res.data.card_alerts || false,
-          analytics_reports: res.data.analytics_reports || false,
-          two_factor: res.data.two_factor || false,
-          auto_logout: res.data.auto_logout !== undefined ? res.data.auto_logout : true,
-          theme: res.data.theme || 'blue',
-          dark_mode: res.data.dark_mode !== undefined ? res.data.dark_mode : true
-        };
-        setForm(settingsData);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        setIsLoading(false);
-        alert('Erro!\n\nNão foi possível carregar as configurações.\nTente recarregar a página.');
-      });
+    loadSettings();
   }, []);
 
-  // Clear success message after 3 seconds
-  useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(''), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage]);
+  const loadSettings = async () => {
+    setIsLoading(true);
+    info('Carregando Configurações', 'Buscando configurações atuais da plataforma...');
 
-  // Input change handler
+    try {
+      const response = await axios.get('/settings');
+      
+      // Garantir que todos os campos tenham valores padrão
+      const settingsData = {
+        platform_name: response.data.platform_name || '',
+        admin_email: response.data.admin_email || '',
+        base_url: response.data.base_url || '',
+        email_notifications: response.data.email_notifications || false,
+        card_alerts: response.data.card_alerts || false,
+        analytics_reports: response.data.analytics_reports || false,
+        two_factor: response.data.two_factor || false,
+        auto_logout: response.data.auto_logout !== undefined ? response.data.auto_logout : true,
+        theme: response.data.theme || 'blue',
+        dark_mode: response.data.dark_mode !== undefined ? response.data.dark_mode : true
+      };
+      
+      setForm(settingsData);
+      success('Configurações Carregadas', 'Configurações carregadas com sucesso!');
+    } catch (err: any) {
+      error(
+        'Erro ao Carregar Configurações', 
+        'Não foi possível carregar as configurações. Tente recarregar a página.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Manipulador de mudança de input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
     setForm(prev => ({ ...prev, [name]: value }));
     
-    // Clear error for this field when user starts typing
+    // Limpar erro para este campo quando usuário começa a digitar
     if (errors[name as keyof ValidationErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
-  // Toggle switch handler
+  // Manipulador de toggle switch
   const handleToggle = (key: keyof FormData) => {
-    setForm(prev => ({ ...prev, [key]: !prev[key] }));
+    const newValue = !form[key];
+    setForm(prev => ({ ...prev, [key]: newValue }));
+    
+    // Mostrar feedback para mudanças importantes
+    if (key === 'two_factor') {
+      if (newValue) {
+        info('2FA Ativado', 'Autenticação em dois fatores foi ativada para maior segurança.');
+      } else {
+        warning('2FA Desativado', 'Autenticação em dois fatores foi desativada. Considere mantê-la ativa.');
+      }
+    } else if (key === 'email_notifications') {
+      if (newValue) {
+        success('Notificações Ativadas', 'Você receberá notificações por e-mail.');
+      } else {
+        info('Notificações Desativadas', 'Notificações por e-mail foram desativadas.');
+      }
+    }
   };
 
-  // Frontend validation
+  // Validação frontend
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
 
-    // Platform name validation
+    // Validação do nome da plataforma
     const platformName = form.platform_name || '';
     if (!platformName.trim()) {
       newErrors.platform_name = 'Nome da plataforma é obrigatório';
@@ -115,7 +171,7 @@ const AdminSettings = () => {
       newErrors.platform_name = 'Nome da plataforma deve ter no máximo 255 caracteres';
     }
 
-    // Email validation
+    // Validação do e-mail
     const adminEmail = form.admin_email || '';
     if (!adminEmail.trim()) {
       newErrors.admin_email = 'E-mail do administrador é obrigatório';
@@ -128,7 +184,7 @@ const AdminSettings = () => {
       }
     }
 
-    // URL validation
+    // Validação da URL
     const baseUrl = form.base_url || '';
     if (!baseUrl.trim()) {
       newErrors.base_url = 'URL base é obrigatória';
@@ -147,7 +203,7 @@ const AdminSettings = () => {
       }
     }
 
-    // Theme validation
+    // Validação do tema
     const theme = form.theme || '';
     const validThemes = ['blue', 'purple', 'green', 'pink', 'orange'];
     if (!validThemes.includes(theme)) {
@@ -155,87 +211,211 @@ const AdminSettings = () => {
     }
 
     setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length > 0) {
+      const errorMessages = Object.values(newErrors).filter(Boolean);
+      error(
+        'Erro de Validação', 
+        `Por favor, corrija os seguintes erros: ${errorMessages.join(', ')}`
+      );
+    }
+    
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit handler
+  // Manipulador de submit
   const handleSubmit = async () => {
-    // Clear previous success message
-    setSuccessMessage('');
-
-    // Frontend validation first
-    if (!validateForm()) {
-      // Show validation errors in alert
-      const errorMessages = Object.values(errors).filter(Boolean);
-      alert('Erro de Validação!\n\nPor favor, corrija os seguintes erros:\n\n• ' + errorMessages.join('\n• '));
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSaving(true);
+    info('Salvando Configurações', 'Aplicando suas alterações...');
 
     try {
       const response = await axios.post('/settings/save', form);
       
       if (response.data.success) {
-        setSuccessMessage('Configurações salvas com sucesso!');
-        alert('Sucesso!\n\nConfigurações salvas com sucesso!');
+        success(
+          'Configurações Salvas!', 
+          'Todas as configurações foram salvas com sucesso. As mudanças já estão ativas.'
+        );
       } else {
-        alert('Erro!\n\n' + response.data.message);
+        error('Erro ao Salvar', response.data.message || 'Não foi possível salvar as configurações.');
       }
-    } catch (error: any) {
-      if (error.response?.status === 422 && error.response?.data?.errors) {
-        // Laravel validation errors
-        const backendErrors = error.response.data.errors;
-        const errorMessages = Object.values(backendErrors).flat();
-        alert('Erro de Validação!\n\n• ' + errorMessages.join('\n• '));
-      } else if (error.response?.status === 500) {
-        alert('Erro do Servidor!\n\nTente novamente em alguns minutos.');
-      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-        alert('Erro de Conexão!\n\nVerifique sua internet e tente novamente.');
+    } catch (err: any) {
+      if (err.response?.status === 422 && err.response?.data?.errors) {
+        // Erros de validação do Laravel
+        const backendErrors = err.response.data.errors;
+        const errorMessages = Object.values(backendErrors).flat() as string[];
+        error(
+          'Erro de Validação do Servidor', 
+          errorMessages.join(', ')
+        );
+      } else if (err.response?.status === 500) {
+        error(
+          'Erro do Servidor', 
+          'Erro interno do servidor. Tente novamente em alguns minutos.'
+        );
+      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+        error(
+          'Erro de Conexão', 
+          'Verifique sua conexão com a internet e tente novamente.'
+        );
       } else {
-        alert('Erro!\n\nTente novamente.');
+        error('Erro Inesperado', 'Ocorreu um erro inesperado. Tente novamente.');
       }
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Reset handler
-  const handleReset = async () => {
-    if (!confirm('Confirmação!\n\nTem certeza que deseja restaurar as configurações padrão?\n\nEsta ação não pode ser desfeita.')) {
-      return;
-    }
+  // Manipulador de reset
+  const handleResetRequest = () => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'reset',
+      isLoading: false
+    });
+  };
 
-    setIsResetting(true);
-    setSuccessMessage('');
+  const handleResetConfirm = async () => {
+    setConfirmModal(prev => ({ ...prev, isLoading: true }));
+    info('Restaurando Configurações', 'Aplicando configurações padrão...');
 
     try {
       const response = await axios.post('/settings/reset');
       setForm(response.data);
       setErrors({});
-      setSuccessMessage('Configurações restauradas!');
-      alert('Sucesso!\n\nConfigurações restauradas para os padrões!');
-    } catch (error: any) {
-      if (error.response?.status === 500) {
-        alert('Erro do Servidor!\n\nTente novamente em alguns minutos.');
-      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-        alert('Erro de Conexão!\n\nVerifique sua internet e tente novamente.');
+      
+      setConfirmModal({
+        isOpen: false,
+        type: null,
+        isLoading: false
+      });
+      
+      success(
+        'Configurações Restauradas!', 
+        'Todas as configurações foram restauradas para os valores padrão.'
+      );
+    } catch (err: any) {
+      setConfirmModal(prev => ({ ...prev, isLoading: false }));
+      
+      if (err.response?.status === 500) {
+        error(
+          'Erro do Servidor', 
+          'Erro interno do servidor. Tente novamente em alguns minutos.'
+        );
+      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+        error(
+          'Erro de Conexão', 
+          'Verifique sua conexão com a internet e tente novamente.'
+        );
       } else {
-        alert('Erro!\n\nNão foi possível restaurar as configurações.');
+        error(
+          'Erro ao Restaurar', 
+          'Não foi possível restaurar as configurações. Tente novamente.'
+        );
       }
-    } finally {
-      setIsResetting(false);
     }
   };
 
-  // Loading state
+  // Alterar senha
+  const handlePasswordChange = () => {
+    setShowPasswordModal(true);
+    setPasswordForm({
+      current_password: '',
+      new_password: '',
+      new_password_confirmation: ''
+    });
+    info('Alterar Senha', 'Preencha os campos para alterar sua senha.');
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!passwordForm.current_password) {
+      error('Senha Atual Obrigatória', 'Digite sua senha atual para continuar.');
+      return;
+    }
+
+    if (!passwordForm.new_password) {
+      error('Nova Senha Obrigatória', 'Digite uma nova senha.');
+      return;
+    }
+
+    if (passwordForm.new_password.length < 6) {
+      error('Senha Muito Curta', 'A nova senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+
+    if (passwordForm.new_password !== passwordForm.new_password_confirmation) {
+      error('Senhas Não Conferem', 'A confirmação da nova senha não confere.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    info('Alterando Senha', 'Aplicando nova senha...');
+
+    try {
+      const response = await axios.post('/admin/change-password', passwordForm);
+      
+      if (response.data.success) {
+        setShowPasswordModal(false);
+        setPasswordForm({
+          current_password: '',
+          new_password: '',
+          new_password_confirmation: ''
+        });
+        
+        success(
+          'Senha Alterada!', 
+          'Sua senha foi alterada com sucesso. Use a nova senha no próximo login.'
+        );
+      } else {
+        error('Erro ao Alterar Senha', response.data.message || 'Não foi possível alterar a senha.');
+      }
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        error('Senha Atual Incorreta', 'A senha atual informada está incorreta.');
+      } else if (err.response?.status === 422) {
+        error('Dados Inválidos', 'Verifique os dados informados e tente novamente.');
+      } else {
+        error('Erro Inesperado', 'Ocorreu um erro ao alterar a senha. Tente novamente.');
+      }
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const closeConfirmModal = () => {
+    if (confirmModal.isLoading) return;
+    
+    setConfirmModal({
+      isOpen: false,
+      type: null,
+      isLoading: false
+    });
+  };
+
+  const closePasswordModal = () => {
+    if (isChangingPassword) return;
+    
+    setShowPasswordModal(false);
+    setPasswordForm({
+      current_password: '',
+      new_password: '',
+      new_password_confirmation: ''
+    });
+  };
+
+  // Estado de carregamento
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="p-6 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Carregando configurações...</p>
+        <div className="p-6 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <div className="space-y-2">
+              <p className="text-lg font-medium text-foreground">Carregando Configurações</p>
+              <p className="text-sm text-muted-foreground">Aguarde enquanto buscamos suas configurações...</p>
+            </div>
           </div>
         </div>
       </AdminLayout>
@@ -247,21 +427,15 @@ const AdminSettings = () => {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Configurações
+            Configurações da Plataforma
           </h1>
-          <p className="text-muted-foreground mt-1">Configure as preferências e definições da plataforma</p>
-          
-          {/* Success Message */}
-          {successMessage && (
-            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-green-800 dark:text-green-200">{successMessage}</span>
-            </div>
-          )}
+          <p className="text-muted-foreground mt-1">
+            Configure as preferências e definições da plataforma
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* General Settings */}
+          {/* Configurações Gerais */}
           <Card className="material-card p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
@@ -271,7 +445,7 @@ const AdminSettings = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Platform Name */}
+              {/* Nome da Plataforma */}
               <div>
                 <Label htmlFor="platform_name">Nome da Plataforma *</Label>
                 <Input 
@@ -289,7 +463,7 @@ const AdminSettings = () => {
                 )}
               </div>
 
-              {/* Admin Email */}
+              {/* E-mail do Administrador */}
               <div>
                 <Label htmlFor="admin_email">E-mail do Administrador *</Label>
                 <Input 
@@ -298,7 +472,7 @@ const AdminSettings = () => {
                   value={form.admin_email} 
                   onChange={handleChange}
                   className={errors.admin_email ? 'border-red-500 focus:border-red-500' : ''}
-                  placeholder="admin@exemplo.com"
+                  placeholder="admin@exemplo.com.br"
                 />
                 {errors.admin_email && (
                   <div className="mt-1 flex items-center gap-1 text-red-600 text-sm">
@@ -308,9 +482,9 @@ const AdminSettings = () => {
                 )}
               </div>
 
-              {/* Base URL */}
+              {/* URL Base */}
               <div>
-                <Label htmlFor="base_url">URL Base *</Label>
+                <Label htmlFor="base_url">URL Base da Plataforma *</Label>
                 <Input 
                   name="base_url" 
                   value={form.base_url} 
@@ -324,11 +498,14 @@ const AdminSettings = () => {
                     {errors.base_url}
                   </div>
                 )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL base usada para links dos cartões de visita
+                </p>
               </div>
             </div>
           </Card>
 
-          {/* Notifications */}
+          {/* Notificações */}
           <Card className="material-card p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
@@ -341,7 +518,7 @@ const AdminSettings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Notificações por E-mail</Label>
-                  <p className="text-sm text-muted-foreground">Receber notificações por e-mail</p>
+                  <p className="text-sm text-muted-foreground">Receber notificações importantes por e-mail</p>
                 </div>
                 <Switch 
                   checked={form.email_notifications} 
@@ -351,8 +528,8 @@ const AdminSettings = () => {
               
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Alertas de Criação de Cartão</Label>
-                  <p className="text-sm text-muted-foreground">Notifique-se quando novos cartões forem criados</p>
+                  <Label>Alertas de Novos Cartões</Label>
+                  <p className="text-sm text-muted-foreground">Notificar quando novos cartões forem criados</p>
                 </div>
                 <Switch 
                   checked={form.card_alerts} 
@@ -362,8 +539,8 @@ const AdminSettings = () => {
               
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Relatórios Analíticos</Label>
-                  <p className="text-sm text-muted-foreground">Resumo semanal de análises</p>
+                  <Label>Relatórios Semanais</Label>
+                  <p className="text-sm text-muted-foreground">Resumo semanal de estatísticas e análises</p>
                 </div>
                 <Switch 
                   checked={form.analytics_reports} 
@@ -373,7 +550,7 @@ const AdminSettings = () => {
             </div>
           </Card>
 
-          {/* Security */}
+          {/* Segurança */}
           <Card className="material-card p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
@@ -385,8 +562,8 @@ const AdminSettings = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Autenticação em Dois Fatores</Label>
-                  <p className="text-sm text-muted-foreground">Ative 2FA para maior segurança</p>
+                  <Label>Autenticação em Dois Fatores (2FA)</Label>
+                  <p className="text-sm text-muted-foreground">Ativar 2FA para maior segurança da conta</p>
                 </div>
                 <Switch 
                   checked={form.two_factor} 
@@ -405,13 +582,18 @@ const AdminSettings = () => {
                 />
               </div>
               
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handlePasswordChange}
+              >
+                <Key className="w-4 h-4 mr-2" />
                 Alterar Senha
               </Button>
             </div>
           </Card>
 
-          {/* Appearance */}
+          {/* Aparência */}
           <Card className="material-card p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
@@ -421,9 +603,9 @@ const AdminSettings = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Theme Selection */}
+              {/* Seleção de Tema */}
               <div>
-                <Label>Tema Padrão do Cartão *</Label>
+                <Label>Tema Padrão dos Cartões *</Label>
                 <select
                   name="theme"
                   value={form.theme}
@@ -432,11 +614,11 @@ const AdminSettings = () => {
                     errors.theme ? 'border-red-500' : 'border-input'
                   }`}
                 >
-                  <option value="blue">Azul</option>
-                  <option value="purple">Roxo</option>
-                  <option value="green">Verde</option>
-                  <option value="pink">Rosa</option>
-                  <option value="orange">Laranja</option>
+                  <option value="blue">🔵 Azul Profissional</option>
+                  <option value="purple">🟣 Roxo Elegante</option>
+                  <option value="green">🟢 Verde Natureza</option>
+                  <option value="pink">🌸 Rosa Moderno</option>
+                  <option value="orange">🟠 Laranja Vibrante</option>
                 </select>
                 {errors.theme && (
                   <div className="mt-1 flex items-center gap-1 text-red-600 text-sm">
@@ -444,9 +626,12 @@ const AdminSettings = () => {
                     {errors.theme}
                   </div>
                 )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tema padrão aplicado aos novos cartões criados
+                </p>
               </div>
               
-              {/* Dark Mode */}
+              {/* Modo Escuro */}
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Modo Escuro</Label>
@@ -461,45 +646,230 @@ const AdminSettings = () => {
           </Card>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3">
+        {/* Botões de Ação */}
+        <div className="flex flex-col sm:flex-row justify-end gap-3">
           <Button 
             variant="outline" 
-            onClick={handleReset}
+            onClick={handleResetRequest}
             disabled={isResetting || isSaving}
+            className="w-full sm:w-auto"
           >
-            {isResetting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                Restaurando...
-              </>
-            ) : (
-              'Restaurar Padrões'
-            )}
+            <RotateCcw className="w-4 h-4 mr-2" />
+            {isResetting ? 'Restaurando...' : 'Restaurar Padrões'}
           </Button>
           
           <Button 
-            className="gradient-button" 
+            className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0" 
             onClick={handleSubmit}
             disabled={isSaving || isResetting}
           >
-            {isSaving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                Salvando...
-              </>
-            ) : (
-              'Salvar Alterações'
-            )}
+            <Save className="w-4 h-4 mr-2" />
+            {isSaving ? 'Salvando...' : 'Salvar Configurações'}
           </Button>
         </div>
 
-        {/* Required Fields Note */}
-        <div className="text-sm text-muted-foreground">
+        {/* Nota sobre Campos Obrigatórios */}
+        <div className="text-sm text-muted-foreground border-t pt-4">
           <span className="text-red-500">*</span> Campos obrigatórios
         </div>
       </div>
+
+      {/* Modal de Alterar Senha */}
+      <Dialog open={showPasswordModal} onOpenChange={closePasswordModal}>
+        <DialogContent className="w-[95vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-blue-600" />
+              Alterar Senha
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Para alterar sua senha, preencha os campos abaixo. A nova senha deve ter pelo menos 6 caracteres.
+            </p>
+            
+            {/* Senha Atual */}
+            <div>
+              <Label htmlFor="current_password">Senha Atual *</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="current_password"
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={passwordForm.current_password}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, current_password: e.target.value }))}
+                  placeholder="Digite sua senha atual"
+                  disabled={isChangingPassword}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isChangingPassword}
+                >
+                  {showCurrentPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Nova Senha */}
+            <div>
+              <Label htmlFor="new_password">Nova Senha *</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="new_password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={passwordForm.new_password}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password: e.target.value }))}
+                  placeholder="Digite a nova senha (mín. 6 caracteres)"
+                  disabled={isChangingPassword}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isChangingPassword}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirmar Nova Senha */}
+            <div>
+              <Label htmlFor="new_password_confirmation">Confirmar Nova Senha *</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="new_password_confirmation"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={passwordForm.new_password_confirmation}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password_confirmation: e.target.value }))}
+                  placeholder="Confirme a nova senha"
+                  disabled={isChangingPassword}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isChangingPassword}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Indicador de força da senha */}
+            {passwordForm.new_password && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Força da senha:</span>
+                  <span className={`text-xs font-medium ${
+                    passwordForm.new_password.length < 6 ? 'text-red-500' :
+                    passwordForm.new_password.length < 8 ? 'text-yellow-500' : 'text-green-500'
+                  }`}>
+                    {passwordForm.new_password.length < 6 ? 'Fraca' :
+                     passwordForm.new_password.length < 8 ? 'Média' : 'Forte'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <div
+                      key={i}
+                      className={`h-1 rounded-full ${
+                        i < (passwordForm.new_password.length < 6 ? 1 : passwordForm.new_password.length < 8 ? 2 : 3)
+                          ? passwordForm.new_password.length < 6 ? 'bg-red-500' :
+                            passwordForm.new_password.length < 8 ? 'bg-yellow-500' : 'bg-green-500'
+                          : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Indicador de senhas conferindo */}
+            {passwordForm.new_password_confirmation && (
+              <div className="flex items-center space-x-2">
+                {passwordForm.new_password === passwordForm.new_password_confirmation ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span className="text-sm text-green-600 dark:text-green-400">Senhas conferem</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    <span className="text-sm text-red-600 dark:text-red-400">Senhas não conferem</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end pt-4">
+              <Button
+                variant="outline"
+                onClick={closePasswordModal}
+                disabled={isChangingPassword}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handlePasswordSubmit}
+                disabled={isChangingPassword || passwordForm.new_password !== passwordForm.new_password_confirmation}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isChangingPassword ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Alterando...
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-4 h-4 mr-2" />
+                    Alterar Senha
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Reset */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen && confirmModal.type === 'reset'}
+        onClose={closeConfirmModal}
+        onConfirm={handleResetConfirm}
+        title="Restaurar Configurações Padrão"
+        description="Tem certeza que deseja restaurar todas as configurações para os valores padrão? Esta ação não pode ser desfeita e todas as suas personalizações serão perdidas."
+        confirmText="Restaurar Padrões"
+        cancelText="Cancelar"
+        type="warning"
+        isLoading={confirmModal.isLoading}
+      />
     </AdminLayout>
+  );
+};
+
+// Componente principal com ToastProvider
+const AdminSettings = () => {
+  return (
+    <ToastProvider>
+      <AdminSettingsContent />
+    </ToastProvider>
   );
 };
 

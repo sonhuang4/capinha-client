@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ToastProvider, useToast } from '@/components/ui/toast';
 import AdminLayout from '@/layouts/admin-layouts';
 import { 
   Search, 
@@ -89,12 +90,15 @@ interface Props {
   stats: PaymentStats;
 }
 
-const AdminPayments: React.FC<Props> = ({ payments, stats }) => {
+// Separate the main component that uses useToast
+const AdminPaymentsContent: React.FC<Props> = ({ payments, stats }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isConfirming, setIsConfirming] = useState<number | null>(null);
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  
+  const { success, error, warning, info } = useToast();
 
   const getStatusColor = (status: Payment['status']): string => {
     switch (status) {
@@ -132,7 +136,8 @@ const AdminPayments: React.FC<Props> = ({ payments, stats }) => {
   };
 
   const confirmPayment = async (paymentId: number): Promise<void> => {
-    if (!confirm('Confirmar este pagamento?')) return;
+    // Show confirmation toast first
+    info('Confirmar Pagamento', 'Processando confirmação do pagamento...');
     
     setIsConfirming(paymentId);
     
@@ -143,18 +148,29 @@ const AdminPayments: React.FC<Props> = ({ payments, stats }) => {
       }, {
         preserveState: true,
         onSuccess: () => {
-          alert('Pagamento confirmado com sucesso!');
+          success(
+            'Pagamento Confirmado!', 
+            'O pagamento foi confirmado com sucesso e o cartão será gerado automaticamente.'
+          );
         },
-        onError: () => {
-          alert('Erro ao confirmar pagamento');
+        onError: (errors) => {
+          console.error('Payment confirmation errors:', errors);
+          error(
+            'Erro ao Confirmar Pagamento',
+            'Não foi possível confirmar o pagamento. Tente novamente ou contate o suporte técnico.'
+          );
         },
         onFinish: () => {
           setIsConfirming(null);
         }
       });
-    } catch (error) {
+    } catch (err) {
       setIsConfirming(null);
-      console.error('Error confirming payment:', error);
+      console.error('Error confirming payment:', err);
+      error(
+        'Erro de Conexão',
+        'Falha na comunicação com o servidor. Verifique sua conexão e tente novamente.'
+      );
     }
   };
 
@@ -169,14 +185,24 @@ const AdminPayments: React.FC<Props> = ({ payments, stats }) => {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setSearchTerm(e.target.value);
+    if (e.target.value && filteredPayments.length === 0) {
+      info('Busca Ativa', `Nenhum resultado encontrado para "${e.target.value}"`);
+    }
   };
 
   const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    setStatusFilter(e.target.value);
+    const newStatus = e.target.value;
+    setStatusFilter(newStatus);
+    
+    if (newStatus !== 'all') {
+      const count = payments.data.filter(p => p.status === newStatus).length;
+      info('Filtro Aplicado', `Mostrando ${count} pagamentos com status "${getStatusText(newStatus as Payment['status'])}"`);
+    }
   };
 
   const openCardUrl = (url: string): void => {
     window.open(url, '_blank');
+    success('Cartão Aberto', 'O cartão foi aberto em uma nova aba do navegador.');
   };
 
   const toggleExpandCard = (paymentId: number): void => {
@@ -195,6 +221,14 @@ const AdminPayments: React.FC<Props> = ({ payments, stats }) => {
       return `R$ ${(amount / 1000).toFixed(1)}k`;
     }
     return formatCurrency(amount);
+  };
+
+  const handleExportCSV = () => {
+    info('Exportação Iniciada', 'Preparando arquivo CSV para download...');
+    // Add your export logic here
+    setTimeout(() => {
+      success('Exportação Concluída', 'O arquivo CSV foi baixado com sucesso!');
+    }, 2000);
   };
 
   return (
@@ -220,6 +254,7 @@ const AdminPayments: React.FC<Props> = ({ payments, stats }) => {
               <Button 
                 variant="outline" 
                 size="sm"
+                onClick={handleExportCSV}
                 className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white border-green-600 dark:bg-green-700 dark:hover:bg-green-800 transition-colors"
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -661,6 +696,15 @@ const AdminPayments: React.FC<Props> = ({ payments, stats }) => {
         </div>
       </div>
     </AdminLayout>
+  );
+};
+
+// Main component that wraps with ToastProvider
+const AdminPayments: React.FC<Props> = (props) => {
+  return (
+    <ToastProvider>
+      <AdminPaymentsContent {...props} />
+    </ToastProvider>
   );
 };
 

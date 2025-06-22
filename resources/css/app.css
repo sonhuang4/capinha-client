@@ -187,3 +187,48 @@
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
 }
+
+
+@keyframes toast-progress {
+  from { 
+    width: 100%; 
+  }
+  to { 
+    width: 0%; 
+  }
+}
+
+.animate-toast-progress {
+  animation: toast-progress linear forwards;
+}
+
+/* Optional: Add some additional toast animations */
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.toast-enter {
+  animation: toast-slide-in 0.3s ease-out;
+}
+
+.toast-exit {
+  animation: toast-slide-out 0.3s ease-in;
+}

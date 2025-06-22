@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { ToastProvider, useToast } from '@/components/ui/toast';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { Plus, Search, Delete, Eye, Copy, MessageCircle, Mail, Share2, Check, Menu, X, Filter } from 'lucide-react';
 import BusinessCardDisplay from '@/components/BusinessCardDisplay';
 import CardForm from '@/components/CardForm';
@@ -53,7 +55,7 @@ interface ExtendedBusinessCard extends BusinessCard {
     clickCount?: number;
 }
 
-const AdminDashboard = () => {
+const AdminDashboardContent = () => {
     const [cards, setCards] = useState<ExtendedBusinessCard[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCard, setSelectedCard] = useState<ExtendedBusinessCard | null>(null);
@@ -63,6 +65,19 @@ const AdminDashboard = () => {
     const [statusFilter, setStatusFilter] = useState<'all' | 'activated' | 'pending'>('all');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        type: 'delete' | 'email' | null;
+        card: ExtendedBusinessCard | null;
+        isLoading: boolean;
+    }>({
+        isOpen: false,
+        type: null,
+        card: null,
+        isLoading: false
+    });
+
+    const { success, error, warning, info } = useToast();
 
     useEffect(() => {
         loadCards();
@@ -71,11 +86,21 @@ const AdminDashboard = () => {
     const loadCards = async () => {
         try {
             setLoading(true);
+            info('Carregando Cartões', 'Buscando cartões mais recentes...');
+            
             const response = await axios.get('/cards');
             setCards(response.data);
-        } catch (error: any) {
-            console.error('Erro ao carregar cartões:', error);
-            alert('Erro ao carregar cartões: ' + (error.response?.data?.message || error.message));
+            
+            success(
+                'Cartões Carregados!', 
+                `${response.data.length} cartões encontrados com sucesso.`
+            );
+        } catch (err: any) {
+            console.error('Erro ao carregar cartões:', err);
+            error(
+                'Erro ao Carregar Cartões',
+                err.response?.data?.message || err.message || 'Não foi possível carregar os cartões. Tente novamente.'
+            );
         } finally {
             setLoading(false);
         }
@@ -89,24 +114,52 @@ const AdminDashboard = () => {
     });
 
     const toggleCardStatus = async (cardId: string) => {
+        const card = cards.find(c => c.id === cardId);
+        const newStatus = card?.status === 'activated' ? 'pending' : 'activated';
+        
+        info(
+            'Alterando Status', 
+            `Alterando status do cartão de ${card?.name}...`
+        );
+
         try {
             const response = await axios.put(`/cards/${cardId}/toggle-status`);
             const updatedCard = response.data;
+            
             setCards(prev =>
                 prev.map(card =>
                     card.id === cardId ? { ...card, status: updatedCard.status } : card
                 )
             );
-        } catch (error: any) {
-            console.error('Falha ao alternar o status do cartão:', error);
-            alert('Erro ao alterar status: ' + (error.response?.data?.message || error.message));
+
+            success(
+                'Status Alterado!',
+                `Cartão de ${card?.name} agora está ${updatedCard.status === 'activated' ? 'ativo' : 'pendente'}.`
+            );
+        } catch (err: any) {
+            console.error('Falha ao alternar o status do cartão:', err);
+            error(
+                'Erro ao Alterar Status',
+                err.response?.data?.message || err.message || 'Não foi possível alterar o status do cartão.'
+            );
         }
     };
 
     const handleDeleteCard = async (card: ExtendedBusinessCard) => {
-        if (!confirm(`⚠️ Confirmação de Exclusão\n\nTem certeza que deseja deletar o cartão de "${card.name}"?\n\nEsta ação não pode ser desfeita e o cartão será permanentemente removido.`)) {
-            return;
-        }
+        // Open beautiful confirmation modal instead of ugly browser alert
+        setConfirmModal({
+            isOpen: true,
+            type: 'delete',
+            card: card,
+            isLoading: false
+        });
+    };
+
+    const confirmDeleteCard = async () => {
+        if (!confirmModal.card) return;
+
+        const card = confirmModal.card;
+        setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
         try {
             await axios.delete(`/cards/${card.id}`);
@@ -114,21 +167,50 @@ const AdminDashboard = () => {
             // Remove card from local state
             setCards(prev => prev.filter(c => c.id !== card.id));
 
-            alert('Sucesso!\n\nCartão deletado com sucesso!');
-        } catch (error: any) {
-            console.error('Failed to delete card:', error);
+            // Close modal
+            setConfirmModal({
+                isOpen: false,
+                type: null,
+                card: null,
+                isLoading: false
+            });
 
-            if (error.response?.status === 403) {
-                alert('Erro!\n\nVocê não tem permissão para deletar este cartão.');
-            } else if (error.response?.status === 404) {
-                alert('Erro!\n\nCartão não encontrado.');
+            success(
+                'Cartão Deletado!',
+                `O cartão de ${card.name} foi removido com sucesso.`
+            );
+        } catch (err: any) {
+            console.error('Failed to delete card:', err);
+
+            setConfirmModal(prev => ({ ...prev, isLoading: false }));
+
+            if (err.response?.status === 403) {
+                error(
+                    'Acesso Negado',
+                    'Você não tem permissão para deletar este cartão.'
+                );
+            } else if (err.response?.status === 404) {
+                error(
+                    'Cartão Não Encontrado',
+                    'O cartão que você está tentando deletar não existe mais.'
+                );
             } else {
-                alert('Erro!\n\nNão foi possível deletar o cartão. Tente novamente.');
+                error(
+                    'Erro ao Deletar',
+                    'Não foi possível deletar o cartão. Tente novamente ou contate o suporte.'
+                );
             }
         }
     };
 
     const handleSaveCard = async (cardData: Partial<ExtendedBusinessCard>) => {
+        const isEditing = !!selectedCard;
+        
+        info(
+            isEditing ? 'Atualizando Cartão' : 'Criando Cartão',
+            isEditing ? 'Salvando alterações...' : 'Criando novo cartão...'
+        );
+
         try {
             const response = selectedCard
                 ? await axios.put(`/cards/${selectedCard.id}`, cardData)
@@ -144,13 +226,27 @@ const AdminDashboard = () => {
 
             setIsFormOpen(false);
             setSelectedCard(null);
-        } catch (error: any) {
-            console.error('Falha ao salvar o cartão:', error);
 
-            // Log the validation errors
-            if (error.response && error.response.data) {
-                console.error('Erros de validação:', error.response.data);
-                alert('Erro de validação: ' + JSON.stringify(error.response.data));
+            success(
+                isEditing ? 'Cartão Atualizado!' : 'Cartão Criado!',
+                isEditing 
+                    ? `As alterações no cartão de ${updatedCard.name} foram salvas.`
+                    : `Novo cartão de ${updatedCard.name} foi criado com sucesso.`
+            );
+        } catch (err: any) {
+            console.error('Falha ao salvar o cartão:', err);
+
+            if (err.response && err.response.data) {
+                console.error('Erros de validação:', err.response.data);
+                error(
+                    'Erro de Validação',
+                    'Por favor, verifique os dados informados e tente novamente.'
+                );
+            } else {
+                error(
+                    'Erro ao Salvar',
+                    'Não foi possível salvar o cartão. Tente novamente.'
+                );
             }
         }
     };
@@ -158,11 +254,14 @@ const AdminDashboard = () => {
     const handlePreview = (card: ExtendedBusinessCard) => {
         setSelectedCard(card);
         setIsPreviewOpen(true);
+        info('Abrindo Preview', `Visualizando cartão de ${card.name}`);
     };
 
     // Copy short link to clipboard
     const copyShortLink = async (card: ExtendedBusinessCard) => {
         try {
+            info('Gerando Link', `Criando link curto para ${card.name}...`);
+            
             const response = await axios.get(`/cards/${card.id}/short-link`);
             
             if (response.data.success) {
@@ -180,27 +279,31 @@ const AdminDashboard = () => {
                     });
                 }, 2000);
 
-                alert("Link copiado! Link curto copiado para a área de transferência");
+                success(
+                    'Link Copiado!',
+                    `O link curto do cartão de ${card.name} foi copiado para a área de transferência.`
+                );
             } else {
                 throw new Error(response.data.message || 'Failed to get short link');
             }
-        } catch (error: any) {
-            console.error('Falha ao copiar link curto:', error);
-            alert("Falha ao copiar link curto: " + (error.response?.data?.message || error.message));
+        } catch (err: any) {
+            console.error('Falha ao copiar link curto:', err);
+            error(
+                'Erro ao Copiar Link',
+                err.response?.data?.message || err.message || 'Não foi possível gerar o link curto.'
+            );
         }
     };
 
     // Share on WhatsApp with fallback
     const shareOnWhatsApp = async (card: ExtendedBusinessCard) => {
         try {
-            console.log('Calling:', `/cards/${card.id}/whatsapp-share`);
+            info('Preparando WhatsApp', `Gerando link do WhatsApp para ${card.name}...`);
 
             const response = await axios.get(`/cards/${card.id}/whatsapp-share`);
             
             if (response.data.success) {
                 const { whatsapp_url, fallback_message } = response.data;
-
-                console.log('Got WhatsApp URL:', whatsapp_url);
 
                 // Try to open WhatsApp
                 const newWindow = window.open(whatsapp_url, '_blank');
@@ -210,25 +313,41 @@ const AdminDashboard = () => {
                     if (!newWindow || newWindow.closed) {
                         // Copy message to clipboard as fallback
                         navigator.clipboard.writeText(fallback_message).then(() => {
-                            alert("Link do WhatsApp bloqueado. Mensagem copiada para a área de transferência! Cole-a manualmente no WhatsApp.");
+                            warning(
+                                'WhatsApp Bloqueado',
+                                'O popup foi bloqueado. A mensagem foi copiada para a área de transferência. Cole manualmente no WhatsApp.'
+                            );
                         }).catch(() => {
-                            alert(`Link do WhatsApp bloqueado. Mensagem copiada para a área de transferência! Cole-a manualmente no WhatsApp.\n\n${fallback_message}`);
+                            error(
+                                'WhatsApp Bloqueado',
+                                `Popup bloqueado e não foi possível copiar automaticamente. Use esta mensagem:\n\n${fallback_message}`
+                            );
                         });
+                    } else {
+                        success(
+                            'WhatsApp Aberto!',
+                            `Link do cartão de ${card.name} enviado para o WhatsApp.`
+                        );
                     }
                 }, 1000);
             } else {
                 throw new Error(response.data.message || 'Failed to get WhatsApp share');
             }
 
-        } catch (error: any) {
-            console.error('Falha ao obter o link do WhatsApp:', error);
-            alert("Erro: Falha ao gerar link do WhatsApp - " + (error.response?.data?.message || error.message));
+        } catch (err: any) {
+            console.error('Falha ao obter o link do WhatsApp:', err);
+            error(
+                'Erro no WhatsApp',
+                err.response?.data?.message || err.message || 'Não foi possível gerar o link do WhatsApp.'
+            );
         }
     };
 
     // Share via Email
     const shareViaEmail = async (card: ExtendedBusinessCard) => {
         try {
+            info('Preparando Email', `Gerando conteúdo de email para ${card.name}...`);
+            
             const response = await axios.get(`/cards/${card.id}/email-share`);
             
             if (response.data.success) {
@@ -239,45 +358,96 @@ const AdminDashboard = () => {
 
                 // Try to copy to clipboard
                 navigator.clipboard.writeText(emailContent).then(() => {
-                    alert("Conteúdo do e-mail copiado para a área de transferência!\n\nAgora você pode:\n1. Abrir o Gmail/Yahoo/Outlook\n2. Colar o conteúdo\n3. Adicionar o e-mail do destinatário\n4. Enviar!");
+                    success(
+                        'Email Preparado!',
+                        'O conteúdo do email foi copiado! Agora abra seu cliente de email, cole o conteúdo e adicione o destinatário.'
+                    );
                 }).catch(() => {
                     // Fallback if clipboard doesn't work
-                    prompt("Copie este conteúdo de e-mail manualmente:", emailContent);
+                    const userCopy = prompt("Copie este conteúdo de e-mail manualmente:", emailContent);
+                    if (userCopy !== null) {
+                        info('Email Preparado', 'Use o conteúdo copiado em seu cliente de email.');
+                    }
                 });
             } else {
                 throw new Error(response.data.message || 'Failed to get email share');
             }
 
-        } catch (error: any) {
-            console.error('Falha ao obter dados de e-mail:', error);
-            alert("Erro: Falha ao gerar conteúdo de e-mail - " + (error.response?.data?.message || error.message));
+        } catch (err: any) {
+            console.error('Falha ao obter dados de e-mail:', err);
+            error(
+                'Erro no Email',
+                err.response?.data?.message || err.message || 'Não foi possível gerar o conteúdo de email.'
+            );
         }
     };
 
     // Send email directly to card owner
     const sendEmailToUser = async (card: ExtendedBusinessCard) => {
         if (!card.email) {
-            alert("⚠️ Este cartão não possui endereço de e-mail. Adicione um e-mail primeiro.");
+            warning(
+                'Email Não Cadastrado',
+                'Este cartão não possui endereço de e-mail. Adicione um email primeiro para poder enviar notificações.'
+            );
             return;
         }
 
-        if (!confirm("Enviar email de ativação para: " + card.email + "?")) {
-            return;
-        }
+        // Open beautiful confirmation modal for email
+        setConfirmModal({
+            isOpen: true,
+            type: 'email',
+            card: card,
+            isLoading: false
+        });
+    };
+
+    const confirmSendEmail = async () => {
+        if (!confirmModal.card?.email) return;
+
+        const card = confirmModal.card;
+        setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
         try {
             const response = await axios.get(`/cards/${card.id}/send-email`);
 
+            // Close modal
+            setConfirmModal({
+                isOpen: false,
+                type: null,
+                card: null,
+                isLoading: false
+            });
+
             if (response.data.success) {
-                alert("✅ E-mail enviado com sucesso para: " + response.data.recipient);
+                success(
+                    'Email Enviado!',
+                    `Email de ativação enviado com sucesso para ${response.data.recipient}.`
+                );
             } else {
-                alert("❌ Falha: " + response.data.message);
+                error('Falha no Envio', response.data.message || 'Não foi possível enviar o email.');
             }
 
-        } catch (error: any) {
-            console.error('Erro ao enviar e-mail:', error);
-            alert("❌ Falha ao enviar o e-mail: " + (error.response?.data?.message || error.message));
+        } catch (err: any) {
+            console.error('Erro ao enviar e-mail:', err);
+            
+            setConfirmModal(prev => ({ ...prev, isLoading: false }));
+            
+            error(
+                'Erro no Envio',
+                err.response?.data?.message || err.message || 'Falha ao enviar o email. Tente novamente.'
+            );
         }
+    };
+
+    const closeConfirmModal = () => {
+        if (confirmModal.isLoading) return; // Prevent closing while loading
+        
+        setConfirmModal({
+            isOpen: false,
+            type: null,
+            card: null,
+            isLoading: false
+        });
     };
 
     // Get all sharing options
@@ -290,36 +460,55 @@ const AdminDashboard = () => {
             } else {
                 throw new Error(response.data.message || 'Failed to get sharing options');
             }
-        } catch (error: any) {
-            console.error('Falha ao obter opções de compartilhamento:', error);
-            alert("Erro ao obter opções de compartilhamento: " + (error.response?.data?.message || error.message));
+        } catch (err: any) {
+            console.error('Falha ao obter opções de compartilhamento:', err);
+            error(
+                'Erro nas Opções de Compartilhamento',
+                err.response?.data?.message || err.message || 'Não foi possível obter as opções de compartilhamento.'
+            );
             return null;
         }
     };
 
     // Handle social media sharing
     const handleSocialShare = async (card: ExtendedBusinessCard, platform: string) => {
+        info('Abrindo Rede Social', `Compartilhando cartão de ${card.name} no ${platform}...`);
+        
         const options = await getSharingOptions(card);
         if (!options) return;
 
         let url = '';
+        let platformName = '';
         switch (platform) {
             case 'twitter':
                 url = options.social.twitter;
+                platformName = 'Twitter';
                 break;
             case 'linkedin':
                 url = options.social.linkedin;
+                platformName = 'LinkedIn';
                 break;
             case 'facebook':
                 url = options.social.facebook;
+                platformName = 'Facebook';
                 break;
             case 'sms':
                 url = options.sms.url;
+                platformName = 'SMS';
                 break;
         }
 
         if (url) {
             window.open(url, '_blank');
+            success(
+                `${platformName} Aberto!`,
+                `Compartilhamento do cartão de ${card.name} aberto no ${platformName}.`
+            );
+        } else {
+            error(
+                'Link Não Disponível',
+                `Não foi possível gerar o link para ${platformName}.`
+            );
         }
     };
 
@@ -384,7 +573,12 @@ const AdminDashboard = () => {
                                 <Input
                                     placeholder="Search by name or card ID..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        if (e.target.value && filteredCards.length === 0) {
+                                            info('Busca Ativa', `Nenhum resultado encontrado para "${e.target.value}"`);
+                                        }
+                                    }}
                                     className="pl-10 w-full"
                                 />
                             </div>
@@ -394,7 +588,10 @@ const AdminDashboard = () => {
                                 <Button
                                     size="sm"
                                     variant={statusFilter === 'all' ? 'default' : 'outline'}
-                                    onClick={() => setStatusFilter('all')}
+                                    onClick={() => {
+                                        setStatusFilter('all');
+                                        info('Filtro Aplicado', 'Mostrando todos os cartões');
+                                    }}
                                     className="text-xs sm:text-sm"
                                 >
                                     Todos os cartões
@@ -402,7 +599,10 @@ const AdminDashboard = () => {
                                 <Button
                                     size="sm"
                                     variant={statusFilter === 'activated' ? 'default' : 'outline'}
-                                    onClick={() => setStatusFilter('activated')}
+                                    onClick={() => {
+                                        setStatusFilter('activated');
+                                        info('Filtro Aplicado', `Mostrando ${activatedCount} cartões ativos`);
+                                    }}
                                     className="text-xs sm:text-sm"
                                 >
                                     Ativo ({activatedCount})
@@ -410,7 +610,10 @@ const AdminDashboard = () => {
                                 <Button
                                     size="sm"
                                     variant={statusFilter === 'pending' ? 'default' : 'outline'}
-                                    onClick={() => setStatusFilter('pending')}
+                                    onClick={() => {
+                                        setStatusFilter('pending');
+                                        info('Filtro Aplicado', `Mostrando ${pendingCount} cartões pendentes`);
+                                    }}
                                     className="text-xs sm:text-sm"
                                 >
                                     Pendente ({pendingCount})
@@ -465,6 +668,7 @@ const AdminDashboard = () => {
                                             onClick={() => {
                                                 setSearchTerm('');
                                                 setStatusFilter('all');
+                                                info('Filtros Limpos', 'Mostrando todos os cartões novamente');
                                             }}
                                             className="mt-4"
                                         >
@@ -684,9 +888,42 @@ const AdminDashboard = () => {
                             )}
                         </DialogContent>
                     </Dialog>
+
+                    {/* Beautiful Confirmation Modal */}
+                    <ConfirmationModal
+                        isOpen={confirmModal.isOpen}
+                        onClose={closeConfirmModal}
+                        onConfirm={confirmModal.type === 'delete' ? confirmDeleteCard : confirmSendEmail}
+                        title={
+                            confirmModal.type === 'delete' 
+                                ? 'Deletar Cartão' 
+                                : 'Enviar Email de Ativação'
+                        }
+                        description={
+                            confirmModal.type === 'delete'
+                                ? `Tem certeza que deseja deletar este cartão? Esta ação removerá permanentemente o cartão e todos os dados associados.`
+                                : `Deseja enviar um email de ativação para o proprietário deste cartão?`
+                        }
+                        confirmText={
+                            confirmModal.type === 'delete' ? 'Deletar Cartão' : 'Enviar Email'
+                        }
+                        cancelText="Cancelar"
+                        type={confirmModal.type === 'delete' ? 'danger' : 'info'}
+                        itemName={confirmModal.card?.name}
+                        isLoading={confirmModal.isLoading}
+                    />
                 </div>
             </div>
         </AdminLayout>
+    );
+};
+
+// Main component wrapper with ToastProvider
+const AdminDashboard = () => {
+    return (
+        <ToastProvider>
+            <AdminDashboardContent />
+        </ToastProvider>
     );
 };
 
