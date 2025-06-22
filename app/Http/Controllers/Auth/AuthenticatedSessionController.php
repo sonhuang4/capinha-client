@@ -3,113 +3,240 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Auth\Events\Lockout;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Show the login page.
+     * Show the login page
      */
-    public function create(Request $request): Response
+    public function create(): Response
     {
-        return Inertia::render('auth/login', [
-            'canResetPassword' => Route::has('password.request'),
-            'status' => $request->session()->get('status'),
-        ]);
+        return Inertia::render('auth/login');
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Show the registration page
      */
-    public function store(Request $request): RedirectResponse
+    public function showRegister(): Response
     {
-        // Validate the request data
-        $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ], [
-            'email.required' => 'O campo email é obrigatório.',
-            'email.email' => 'O email deve ter um formato válido.',
-            'password.required' => 'O campo senha é obrigatório.',
-        ]);
+        return Inertia::render('auth/register');
+    }
 
-        // Ensure the request is not rate limited
-        $this->ensureIsNotRateLimited($request);
+    /**
+     * Handle login request
+     */
+    public function store(LoginRequest $request): JsonResponse
+    {
+        try {
+            $credentials = $request->validated();
+            $remember = $request->boolean('remember');
 
-        // Attempt to authenticate the user
-        if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
-            // Increment the rate limiter
-            RateLimiter::hit($this->throttleKey($request));
+            // Find user by email
+            $user = User::where('email', $credentials['email'])->first();
 
-            // Throw validation exception with Portuguese error message
-            throw ValidationException::withMessages([
-                'email' => 'As credenciais fornecidas não correspondem aos nossos registros.',
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'These credentials do not match our records.',
+                    'errors' => [
+                        'email' => ['These credentials do not match our records.']
+                    ]
+                ], 422);
+            }
+
+            // Verify password
+            if (!Hash::check($credentials['password'], $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The provided password is incorrect.',
+                    'errors' => [
+                        'password' => ['The provided password is incorrect.']
+                    ]
+                ], 422);
+            }
+
+            // Check if user is active (if you have user status)
+            if (method_exists($user, 'isActive') && !$user->isActive()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account has been deactivated. Please contact support.',
+                    'errors' => [
+                        'email' => ['Your account has been deactivated.']
+                    ]
+                ], 422);
+            }
+
+            // Login successful
+            Auth::login($user, $remember);
+            $request->session()->regenerate();
+
+            // Determine redirect URL based on role
+            $redirectUrl = $this->getRedirectUrl($user);
+
+            Log::info('User logged in successfully', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role
             ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login successful!',
+                'redirect' => $redirectUrl,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ],
+                'role' => $user->role
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Login error', [
+                'error' => $e->getMessage(),
+                'email' => $request->email ?? 'unknown'
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during login. Please try again.',
+            ], 500);
         }
-
-        // Clear the rate limiter for this user
-        RateLimiter::clear($this->throttleKey($request));
-
-        // Regenerate the session to prevent session fixation
-        $request->session()->regenerate();
-
-        // Redirect to intended page or dashboard
-        return redirect()->intended('/auth/redirect');
     }
 
     /**
-     * Destroy an authenticated session (logout).
+     * Handle registration request
      */
-    public function destroy(Request $request): RedirectResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        // Logout the user
-        Auth::guard('web')->logout();
+        try {
+            $data = $request->validated();
 
-        // Invalidate the session
-        $request->session()->invalidate();
+            // Double-check if user exists (additional safety)
+            if (User::where('email', $data['email'])->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This email is already registered.',
+                    'errors' => [
+                        'email' => ['This email is already registered.']
+                    ]
+                ], 422);
+            }
 
-        // Regenerate the CSRF token
-        $request->session()->regenerateToken();
+            // Create new user
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'role' => 'client', // Default role
+                'email_verified_at' => null, // Set to null initially
+            ]);
 
-        // Redirect to home page with success message
-        return redirect('/')->with('status', 'Logout realizado com sucesso.');
-    }
+            // Auto-login after registration
+            Auth::login($user);
+            $request->session()->regenerate();
 
-    /**
-     * Ensure the login request is not rate limited.
-     */
-    protected function ensureIsNotRateLimited(Request $request): void
-    {
-        if (!RateLimiter::tooManyAttempts($this->throttleKey($request), 5)) {
-            return;
+            // Determine redirect URL
+            $redirectUrl = $this->getRedirectUrl($user);
+
+            Log::info('User registered successfully', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration successful! Welcome aboard!',
+                'redirect' => $redirectUrl,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ],
+                'role' => $user->role
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Registration error', [
+                'error' => $e->getMessage(),
+                'email' => $request->email ?? 'unknown'
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during registration. Please try again.',
+            ], 500);
         }
-
-        // Fire the lockout event
-        event(new Lockout($request));
-
-        // Calculate how many seconds until the user can try again
-        $seconds = RateLimiter::availableIn($this->throttleKey($request));
-
-        // Throw validation exception with rate limit message
-        throw ValidationException::withMessages([
-            'email' => "Muitas tentativas de login. Tente novamente em {$seconds} segundos.",
-        ]);
     }
 
     /**
-     * Get the rate limiting throttle key for the request.
+     * Handle logout
      */
-    protected function throttleKey(Request $request): string
+    public function destroy(Request $request)
     {
-        return Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+        try {
+            $user = Auth::user();
+            
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            if ($user) {
+                Log::info('User logged out', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ]);
+            }
+
+            // Check if request expects JSON (for API calls)
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Logged out successfully.',
+                    'redirect' => '/'
+                ]);
+            }
+
+            // For Inertia requests, redirect properly
+            return redirect('/')->with('message', 'Logged out successfully.');
+
+        } catch (\Exception $e) {
+            Log::error('Logout error', ['error' => $e->getMessage()]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred during logout.',
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'An error occurred during logout.']);
+        }
+    }
+
+    /**
+     * Get redirect URL based on user role
+     */
+    private function getRedirectUrl(User $user): string
+    {
+        return match ($user->role) {
+            'admin' => '/dashboard',
+            'client' => '/client/dashboard',
+            default => '/client/dashboard',
+        };
     }
 }

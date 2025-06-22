@@ -1,291 +1,301 @@
-import { Head, useForm } from '@inertiajs/react';
-import { LogIn, LoaderCircle } from 'lucide-react';
-import { FormEventHandler, useEffect } from 'react';
+import { Head } from '@inertiajs/react';
+import { LogIn, LoaderCircle, Eye, EyeOff } from 'lucide-react';
+import { useState, FormEvent, useCallback } from 'react';
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent } from '@/components/ui/card';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import ThemeToggle from '@/components/ThemeToggle';
 
-type LoginForm = {
-  email: string;
-  password: string;
-  remember: boolean;
-};
-
-interface LoginProps {
-  status?: string;
-  canResetPassword: boolean;
+interface LoginForm {
+    email: string;
+    password: string;
+    remember: boolean;
 }
 
-export default function Login({ status, canResetPassword }: LoginProps) {
-  const { data, setData, post, processing, errors, reset, clearErrors } = useForm<Required<LoginForm>>({
-    email: '',
-    password: '',
-    remember: false,
-  });
+interface LoginError {
+    email?: string[];
+    password?: string[];
+}
 
-  // Clear errors when user starts typing
-  useEffect(() => {
-    if (errors.email || errors.password) {
-      const timer = setTimeout(() => {
-        clearErrors();
-      }, 5000); // Clear errors after 5 seconds
+interface ApiResponse {
+    success: boolean;
+    message: string;
+    redirect?: string;
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+        role: string;
+    };
+    role?: string;
+    errors?: LoginError;
+}
 
-      return () => clearTimeout(timer);
-    }
-  }, [errors, clearErrors]);
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const handleInputChange = (field: keyof LoginForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = field === 'remember' ? e.target.checked : e.target.value;
-    setData(field, value as any);
-    
-    // Clear specific field error when user starts typing
-    if (errors[field]) {
-      clearErrors(field);
-    }
-  };
-
-  const submit: FormEventHandler = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Prevent double submission
-    if (processing) {
-      console.log('Already processing login, ignoring duplicate request');
-      return;
-    }
-    
-    // Clear any existing errors
-    clearErrors();
-    
-    // Client-side validation
-    const validationErrors: Partial<LoginForm> = {};
-    
-    if (!data.email.trim()) {
-      validationErrors.email = 'Email é obrigatório';
-    } else if (!validateEmail(data.email)) {
-      validationErrors.email = 'Por favor, insira um endereço de email válido';
-    }
-    
-    if (!data.password.trim()) {
-      validationErrors.password = 'Senha é obrigatória';
-    }
-    
-    // If validation fails, show errors and return
-    if (Object.keys(validationErrors).length > 0) {
-      console.log('Client-side validation failed:', validationErrors);
-      return;
-    }
-    
-    console.log('Submitting login form...', {
-      email: data.email,
-      hasPassword: !!data.password,
-      remember: data.remember
+export default function Login() {
+    const [formData, setFormData] = useState<LoginForm>({
+        email: '',
+        password: '',
+        remember: false
     });
-    
-    // Submit the form
-    post(route('login'), {
-      onStart: () => {
-        console.log('Login request started');
-      },
-      onSuccess: (page) => {
-        console.log('Login successful, redirecting...', page);
-        reset('password');
-      },
-      onError: (errors) => {
-        console.log('Login failed with errors:', errors);
-        reset('password');
-      },
-      onFinish: () => {
-        console.log('Login request finished');
-      },
-      preserveScroll: true,
-      replace: true, // Use replace to avoid history issues
-    });
-  };
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [errors, setErrors] = useState<LoginError>({});
+    const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  return (
-    <div className="min-h-screen relative flex items-center justify-center">
-      <Head title="Entrar" />
-      <AnimatedBackground />
+    const validateEmail = (email: string): boolean => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
 
-      <div className="absolute top-4 right-4 z-10">
-        <ThemeToggle />
-      </div>
+    const validateForm = (): boolean => {
+        if (!formData.email.trim()) {
+            setErrors({ email: ['Email address is required.'] });
+            return false;
+        }
 
-      <Card className="w-full max-w-sm p-6 shadow-xl rounded-xl bg-card text-card-foreground z-10 animate-fade-in">
-        <div className="text-center mb-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
-            <LogIn className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Bem vindo de volta
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Insira suas credenciais para efetuar login
-          </p>
-        </div>
+        if (!validateEmail(formData.email)) {
+            setErrors({ email: ['Please enter a valid email address.'] });
+            return false;
+        }
 
-        {/* Success Status Message */}
-        {status && (
-          <div className="mb-3 text-center text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md p-3">
-            {status}
-          </div>
-        )}
+        if (!formData.password) {
+            setErrors({ password: ['Password is required.'] });
+            return false;
+        }
 
-        {/* General Error Message */}
-        {(errors.email || errors.password) && (
-          <div className="mb-3 p-3 text-center text-sm font-medium text-red-600 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
-            <div className="flex items-center justify-center gap-2">
-              <span>⚠️</span>
-              <span>
-                {errors.email || errors.password || 'Credenciais inválidas. Verifique seu email e senha.'}
-              </span>
+        return true;
+    };
+
+    const getCsrfToken = async (): Promise<string> => {
+        // Ensure fresh CSRF token
+        await fetch('/sanctum/csrf-cookie', {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+
+        // Wait for cookie to be set
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Try to get token from meta tag first
+        let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        // If not found, try cookie
+        if (!csrfToken) {
+            const cookies = document.cookie.split(';');
+            const xsrfCookie = cookies.find(cookie => cookie.trim().startsWith('XSRF-TOKEN='));
+            if (xsrfCookie) {
+                csrfToken = decodeURIComponent(xsrfCookie.split('=')[1]);
+            }
+        }
+
+        if (!csrfToken) {
+            throw new Error('CSRF token not available');
+        }
+
+        return csrfToken;
+    };
+
+    const handleSubmit = useCallback(async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        if (isLoading) return;
+
+        if (!validateForm()) return;
+
+        setIsLoading(true);
+        setErrors({});
+
+        try {
+            const csrfToken = await getCsrfToken();
+
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(formData)
+            });
+
+            const data: ApiResponse = await response.json();
+
+            if (response.ok && data.success) {
+                // Success
+                const redirectUrl = data.redirect || '/client/dashboard';
+                window.location.href = redirectUrl;
+            } else {
+                // Handle errors
+                if (response.status === 419) {
+                    // CSRF token mismatch
+                    window.location.reload();
+                    return;
+                }
+
+                if (data.errors) {
+                    setErrors(data.errors);
+                } else if (data.message) {
+                    setErrors({ email: [data.message] });
+                } else {
+                    setErrors({ email: ['An error occurred. Please try again.'] });
+                }
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            setErrors({ email: ['Network error. Please check your connection and try again.'] });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [formData, isLoading]);
+
+    const handleChange = (field: keyof LoginForm, value: string | boolean) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+        
+        // Clear errors when user starts typing
+        if (errors[field as keyof LoginError]) {
+            setErrors(prev => ({
+                ...prev,
+                [field]: undefined
+            }));
+        }
+    };
+
+    return (
+        <div className="min-h-screen relative flex items-center justify-center p-4">
+            <Head title="Sign In" />
+            <AnimatedBackground />
+
+            <div className="absolute top-4 right-4 z-10">
+                <ThemeToggle />
             </div>
-          </div>
-        )}
 
-        <form onSubmit={submit} className="space-y-3" noValidate>
-          <div>
-            <Label htmlFor="email" className="text-sm">Endereço de email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={data.email}
-              onChange={handleInputChange('email')}
-              autoComplete="email"
-              placeholder="email@exemplo.com"
-              disabled={processing}
-              className={`${
-                !data.email || errors.email
-                  ? 'bg-blue-50 dark:bg-blue-950/20' 
-                  : ''
-              }`}
-              style={
-                !data.email || errors.email
-                  ? { borderColor: '#2f5afb' } 
-                  : {}
-              }
-              aria-invalid={!!errors.email}
-              aria-describedby={errors.email ? 'email-error' : undefined}
-            />
-            {errors.email && (
-              <InputError 
-                id="email-error"
-                message={errors.email} 
-                className="mt-1 text-xs" 
-              />
-            )}
-          </div>
+            <Card className="w-full max-w-sm shadow-xl rounded-xl bg-card text-card-foreground z-10 animate-fade-in">
+                <div className="p-6">
+                    <div className="text-center mb-6">
+                        <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <LogIn className="w-5 h-5 text-white" />
+                        </div>
+                        <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                            Sign In
+                        </h1>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Enter your credentials to access your account
+                        </p>
+                    </div>
 
-          <div>
-            <Label htmlFor="password" className="text-sm">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              value={data.password}
-              onChange={handleInputChange('password')}
-              autoComplete="current-password"
-              placeholder="••••••••"
-              disabled={processing}
-              className={`${
-                !data.password || errors.password
-                  ? 'bg-blue-50 dark:bg-blue-950/20' 
-                  : ''
-              }`}
-              style={
-                !data.password || errors.password
-                  ? { borderColor: '#2f5afb' } 
-                  : {}
-              }
-              aria-invalid={!!errors.password}
-              aria-describedby={errors.password ? 'password-error' : undefined}
-            />
-            {errors.password && (
-              <InputError 
-                id="password-error"
-                message={errors.password} 
-                className="mt-1 text-xs" 
-              />
-            )}
-          </div>
+                    <CardContent className="p-0">
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <Label htmlFor="email" className="text-sm font-medium">
+                                    Email Address
+                                </Label>
+                                <Input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => handleChange('email', e.target.value)}
+                                    required
+                                    autoComplete="email"
+                                    placeholder="you@example.com"
+                                    disabled={isLoading}
+                                    className="mt-1"
+                                />
+                                <InputError message={errors.email?.[0]} className="mt-1" />
+                            </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="remember"
-              name="remember"
-              checked={data.remember}
-              onCheckedChange={(checked) => setData('remember', !!checked)}
-              disabled={processing}
-            />
-            <Label htmlFor="remember" className="text-sm">Lembrar de mim</Label>
-          </div>
+                            <div>
+                                <Label htmlFor="password" className="text-sm font-medium">
+                                    Password
+                                </Label>
+                                <div className="relative mt-1">
+                                    <Input
+                                        id="password"
+                                        name="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={formData.password}
+                                        onChange={(e) => handleChange('password', e.target.value)}
+                                        required
+                                        autoComplete="current-password"
+                                        placeholder="Enter your password"
+                                        disabled={isLoading}
+                                        className="pr-10"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        disabled={isLoading}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4 text-gray-400" />
+                                        ) : (
+                                            <Eye className="h-4 w-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                                <InputError message={errors.password?.[0]} className="mt-1" />
+                            </div>
 
-          <Button
-            type="submit"
-            className="gradient-button w-full h-10 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={processing}
-            aria-describedby={processing ? 'login-status' : undefined}
-          >
-            {processing ? (
-              <>
-                <LoaderCircle className="w-4 h-4 animate-spin mr-2" />
-                <span id="login-status">Conectando...</span>
-              </>
-            ) : (
-              'Conectar-se'
-            )}
-          </Button>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="remember"
+                                        checked={formData.remember}
+                                        onCheckedChange={(checked) => handleChange('remember', !!checked)}
+                                        disabled={isLoading}
+                                    />
+                                    <Label 
+                                        htmlFor="remember" 
+                                        className="text-sm text-muted-foreground cursor-pointer"
+                                    >
+                                        Remember me
+                                    </Label>
+                                </div>
 
-          <div className="flex items-center justify-between text-xs">
-            <TextLink href={route('register')} className="underline">
-              Cadastrar-se
-            </TextLink>
-            
-            {canResetPassword && (
-              <TextLink href={route('password.request')} className="underline">
-                Esqueceu a senha?
-              </TextLink>
-            )}
-          </div>
-        </form>
+                                <TextLink 
+                                    href="/forgot-password" 
+                                    className="text-sm underline hover:no-underline"
+                                >
+                                    Forgot password?
+                                </TextLink>
+                            </div>
 
-        {/* Development Debug Info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
-            <details>
-              <summary className="cursor-pointer font-semibold">🐛 Debug Info</summary>
-              <div className="mt-2 space-y-1">
-                <div><strong>Processing:</strong> {processing ? 'Yes' : 'No'}</div>
-                <div><strong>Has Errors:</strong> {Object.keys(errors).length > 0 ? 'Yes' : 'No'}</div>
-                <div><strong>Email Valid:</strong> {data.email ? validateEmail(data.email) ? 'Yes' : 'No' : 'Empty'}</div>
-                <div><strong>Password Length:</strong> {data.password.length}</div>
-                <div><strong>Remember:</strong> {data.remember ? 'Yes' : 'No'}</div>
-                {Object.keys(errors).length > 0 && (
-                  <div><strong>Errors:</strong> {JSON.stringify(errors, null, 2)}</div>
-                )}
-              </div>
-            </details>
-          </div>
-        )}
-      </Card>
-    </div>
-  );
+                            <Button
+                                type="submit"
+                                className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <LoaderCircle className="w-4 h-4 animate-spin mr-2" />
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    'Sign In'
+                                )}
+                            </Button>
+                        </form>
+
+                        <p className="mt-6 text-sm text-center text-muted-foreground">
+                            Don't have an account?{' '}
+                            <TextLink href="/register" className="underline hover:no-underline font-medium">
+                                Sign up
+                            </TextLink>
+                        </p>
+                    </CardContent>
+                </div>
+            </Card>
+        </div>
+    );
 }

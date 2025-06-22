@@ -5,8 +5,9 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rules\Password;
 
-class LoginRequest extends FormRequest
+class RegisterRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,9 +23,10 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:1'],
-            'remember' => ['boolean'],
+            'name' => ['required', 'string', 'max:255', 'min:2'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', Password::min(6)->mixedCase()->numbers(), 'confirmed'],
+            'password_confirmation' => ['required', 'string'],
         ];
     }
 
@@ -34,11 +36,17 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'name.required' => 'Full name is required.',
+            'name.min' => 'Name must be at least 2 characters.',
+            'name.max' => 'Name is too long.',
             'email.required' => 'Email address is required.',
             'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email is already registered.',
             'email.max' => 'Email address is too long.',
             'password.required' => 'Password is required.',
-            'password.min' => 'Password must be at least 1 character.',
+            'password.min' => 'Password must be at least 6 characters.',
+            'password.confirmed' => 'Password confirmation does not match.',
+            'password_confirmation.required' => 'Password confirmation is required.',
         ];
     }
 

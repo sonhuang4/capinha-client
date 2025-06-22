@@ -563,7 +563,7 @@ const ClientCardCreator = ({
 
     if (edit_mode && card_id) {
       // ✅ EDIT MODE - Keep existing logic
-      const result = await submitForm(`/client/cards/${card_id}`, submitData, 'PUT');
+      const result = await submitForm(`/client/cards/${card_id}`, submitData, 'POST');
 
       if (result.success) {
         showAlert('✅ Cartão atualizado com sucesso!', 'success');

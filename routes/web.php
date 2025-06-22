@@ -11,12 +11,91 @@ use App\Http\Controllers\{
     HomeController,
     UploadController,
 };
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+
+
+Route::get('/sanctum/csrf-cookie', function () {
+    return response()->json(['csrf_token' => csrf_token()]);
+});
+
+// Home page
+Route::get('/', function () {
+    return redirect('/login');
+});
+
+// Auth routes - YOUR LOGIC
+Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+Route::get('/register', [AuthenticatedSessionController::class, 'showRegister'])->name('register');
+Route::post('/register', [AuthenticatedSessionController::class, 'register']);
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+
+// Dashboard routes (protected)
+Route::middleware('auth')->group(function () {
+    
+    // ✅ ADMIN DASHBOARD
+    Route::get('/dashboard', function () {
+        $user = auth()->user();
+        
+        // Only admins can access this route
+        if (!$user->isAdmin()) {
+            return redirect('/client/dashboard');
+        }
+        
+        return inertia('dashboard', [
+            'user' => $user
+        ]);
+    })->name('dashboard');
+    
+    // ✅ CLIENT DASHBOARD  
+    Route::get('/client/dashboard', function () {
+        $user = auth()->user();
+        
+        // Only clients can access this route
+        if (!$user->isClient()) {
+            return redirect('/dashboard');
+        }
+        
+        return inertia('ClientDashboard', [
+            'user' => $user,
+            'cards' => $user->cards // User's cards
+        ]);
+    })->name('client.dashboard');
+    
+});
 
 /*
 |--------------------------------------------------------------------------
 | Public Routes
 |--------------------------------------------------------------------------
 */
+
+
+// Home page
+Route::get('/', function () {
+    return redirect('/login');
+});
+
+// Auth routes - YOUR LOGIC
+Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+Route::get('/register', [AuthenticatedSessionController::class, 'showRegister'])->name('register');
+Route::post('/register', [AuthenticatedSessionController::class, 'register']);
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+
+// Dashboard (protected)
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', function () {
+        return inertia('dashboard', [
+            'user' => auth()->user()
+        ]);
+    })->name('dashboard');
+});
+
 
 // Public activation routes
 Route::prefix('activate')->name('activate.')->group(function () {
@@ -118,7 +197,7 @@ Route::middleware('auth')->group(function () {
         // Card Management
         Route::prefix('cards')->name('cards.')->group(function () {
             Route::get('/{id}/edit', [ClientController::class, 'edit'])->name('edit');
-            Route::put('/{id}', [ClientController::class, 'update'])->name('update');
+            Route::post('/{id}', [ClientController::class, 'update'])->name('update');
             Route::delete('/{id}', [ClientController::class, 'destroy'])->name('destroy');
             Route::post('/{id}/duplicate', [ClientController::class, 'duplicate'])->name('duplicate');
             Route::post('/{id}/toggle-status', [ClientController::class, 'toggleStatus'])->name('toggle-status');
@@ -229,4 +308,4 @@ Route::middleware('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-require __DIR__ . '/auth.php';
+// require __DIR__ . '/auth.php';
